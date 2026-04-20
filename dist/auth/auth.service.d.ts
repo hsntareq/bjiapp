@@ -14,7 +14,7 @@ export declare class AuthService {
     }>;
     validateUserByEmail(email: string, pass: string): Promise<any>;
     validateUserByMobile(mobile: string, pass: string): Promise<any>;
-    validateUserByGoogle(googleId: string): Promise<any>;
+    findOrCreateByGoogle(googleId: string, email: string): Promise<any>;
     login(user: any): Promise<{
         access_token: string;
     }>;

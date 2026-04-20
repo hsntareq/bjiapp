@@ -37,6 +37,13 @@ let AuthController = class AuthController {
         }
         return this.authService.login(user);
     }
+    async loginWithGoogle(body) {
+        if (!body.googleId) {
+            throw new common_1.HttpException('googleId is required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        const user = await this.authService.findOrCreateByGoogle(body.googleId, body.email);
+        return this.authService.login(user);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -60,6 +67,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "loginWithMobile", null);
+__decorate([
+    (0, common_1.Post)('google'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "loginWithGoogle", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

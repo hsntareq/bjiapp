@@ -21,4 +21,10 @@ export declare class AuthController {
     }): Promise<{
         access_token: string;
     }>;
+    loginWithGoogle(body: {
+        googleId: string;
+        email: string;
+    }): Promise<{
+        access_token: string;
+    }>;
 }
