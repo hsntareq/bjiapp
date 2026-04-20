@@ -28,5 +28,12 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  // Google login endpoint will be added here
+  @Post('google')
+  async loginWithGoogle(@Body() body: { googleId: string; email: string }) {
+    if (!body.googleId) {
+      throw new HttpException('googleId is required', HttpStatus.BAD_REQUEST);
+    }
+    const user = await this.authService.findOrCreateByGoogle(body.googleId, body.email);
+    return this.authService.login(user);
+  }
 }

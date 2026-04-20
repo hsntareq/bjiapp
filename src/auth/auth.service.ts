@@ -58,13 +58,24 @@ export class AuthService {
     return null;
   }
 
-  async validateUserByGoogle(googleId: string): Promise<any> {
-    const user = await this.usersRepository.findOne({ where: { googleId } });
+  async findOrCreateByGoogle(googleId: string, email: string): Promise<any> {
+    let user = await this.usersRepository.findOne({ where: { googleId } });
+    if (!user && email) {
+      user = await this.usersRepository.findOne({ where: { email } });
+    }
     if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user = await this.usersRepository.save(user);
+      }
       const { password, ...result } = user;
       return result;
     }
-    return null;
+    // Create new user from Google
+    const newUser = this.usersRepository.create({ googleId, email });
+    const saved = await this.usersRepository.save(newUser);
+    const { password, ...result } = saved;
+    return result;
   }
 
   async login(user: any) {
