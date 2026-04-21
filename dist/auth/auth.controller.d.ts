@@ -1,3 +1,4 @@
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 export declare class AuthController {
     private readonly authService;
@@ -27,4 +28,6 @@ export declare class AuthController {
     }): Promise<{
         access_token: string;
     }>;
+    googleAuth(): Promise<void>;
+    googleAuthCallback(req: Request, res: Response): Promise<void>;
 }

@@ -31,7 +31,8 @@ let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrateg
     }
     async validate(accessToken, refreshToken, profile, done) {
         const { id, emails } = profile;
-        const user = await this.authService.validateUserByGoogle(id);
+        const email = emails?.[0]?.value ?? '';
+        const user = await this.authService.findOrCreateByGoogle(id, email);
         done(null, user);
     }
 };
