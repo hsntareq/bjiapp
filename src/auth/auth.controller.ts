@@ -1,16 +1,16 @@
 import {
-	Body,
-	Controller,
-	Get,
-	HttpException,
-	HttpStatus,
-	Post,
-	Req,
-	Res,
-	UseGuards,
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -25,8 +25,10 @@ export class AuthController {
   }
 
   @Post('login-email')
-  async loginWithEmail(@Body() body: { email: string; password: string }) {
-    const user = await this.authService.validateUserByEmail(
+  async loginWithEmail(
+    @Body() body: { email: string; password: string },
+  ): Promise<unknown> {
+    const user: unknown = await this.authService.validateUserByEmail(
       body.email,
       body.password,
     );
@@ -37,8 +39,10 @@ export class AuthController {
   }
 
   @Post('login-mobile')
-  async loginWithMobile(@Body() body: { mobile: string; password: string }) {
-    const user = await this.authService.validateUserByMobile(
+  async loginWithMobile(
+    @Body() body: { mobile: string; password: string },
+  ): Promise<unknown> {
+    const user: unknown = await this.authService.validateUserByMobile(
       body.mobile,
       body.password,
     );
@@ -49,11 +53,13 @@ export class AuthController {
   }
 
   @Post('google')
-  async loginWithGoogle(@Body() body: { googleId: string; email: string }) {
+  async loginWithGoogle(
+    @Body() body: { googleId: string; email: string },
+  ): Promise<unknown> {
     if (!body.googleId) {
       throw new HttpException('googleId is required', HttpStatus.BAD_REQUEST);
     }
-    const user = await this.authService.findOrCreateByGoogle(
+    const user: unknown = await this.authService.findOrCreateByGoogle(
       body.googleId,
       body.email,
     );
@@ -68,7 +74,10 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+  async googleAuthCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
     const token = await this.authService.login(req.user);
     // Redirect to the frontend with the JWT as a query param
     res.redirect(
