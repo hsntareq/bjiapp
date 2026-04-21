@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Get,
+	HttpException,
+	HttpStatus,
+	Post,
+	Req,
+	Res,
+	UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -8,13 +18,18 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: { email?: string; mobile?: string; password: string }) {
+  async register(
+    @Body() body: { email?: string; mobile?: string; password: string },
+  ) {
     return this.authService.register(body);
   }
 
   @Post('login-email')
   async loginWithEmail(@Body() body: { email: string; password: string }) {
-    const user = await this.authService.validateUserByEmail(body.email, body.password);
+    const user = await this.authService.validateUserByEmail(
+      body.email,
+      body.password,
+    );
     if (!user) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
@@ -23,7 +38,10 @@ export class AuthController {
 
   @Post('login-mobile')
   async loginWithMobile(@Body() body: { mobile: string; password: string }) {
-    const user = await this.authService.validateUserByMobile(body.mobile, body.password);
+    const user = await this.authService.validateUserByMobile(
+      body.mobile,
+      body.password,
+    );
     if (!user) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
@@ -35,7 +53,10 @@ export class AuthController {
     if (!body.googleId) {
       throw new HttpException('googleId is required', HttpStatus.BAD_REQUEST);
     }
-    const user = await this.authService.findOrCreateByGoogle(body.googleId, body.email);
+    const user = await this.authService.findOrCreateByGoogle(
+      body.googleId,
+      body.email,
+    );
     return this.authService.login(user);
   }
 
@@ -50,6 +71,8 @@ export class AuthController {
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
     const token = await this.authService.login(req.user);
     // Redirect to the frontend with the JWT as a query param
-    res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard?token=${token.access_token}`);
+    res.redirect(
+      `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard?token=${token.access_token}`,
+    );
   }
 }
