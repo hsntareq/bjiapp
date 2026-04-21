@@ -21,8 +21,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
     const { id, emails } = profile;
-    // Find or create user logic here
-    const user = await this.authService.validateUserByGoogle(id);
+    const email = emails?.[0]?.value ?? '';
+    const user = await this.authService.findOrCreateByGoogle(id, email);
     done(null, user);
   }
 }

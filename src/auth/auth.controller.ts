@@ -1,4 +1,6 @@
-import { Body, Controller, HttpException, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -35,5 +37,19 @@ export class AuthController {
     }
     const user = await this.authService.findOrCreateByGoogle(body.googleId, body.email);
     return this.authService.login(user);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Initiates Google OAuth redirect — handled by Passport
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    const token = await this.authService.login(req.user);
+    // Redirect to the frontend with the JWT as a query param
+    res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard?token=${token.access_token}`);
   }
 }
