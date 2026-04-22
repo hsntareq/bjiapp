@@ -32,20 +32,14 @@ describe('CreatePersonalReportDto', () => {
     const validValues = [0, 1, 5];
 
     for (const value of validValues) {
-      const dto = plainToInstance(
-        CreatePersonalReportDto,
-        makePayload({ salahJamaat: value }),
-      );
+      const dto = plainToInstance(CreatePersonalReportDto, makePayload({ salahJamaat: value }));
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     }
   });
 
   it('rejects salahJamaat values outside the 0..5 range', async () => {
-    const dto = plainToInstance(
-      CreatePersonalReportDto,
-      makePayload({ salahJamaat: 6 }),
-    );
+    const dto = plainToInstance(CreatePersonalReportDto, makePayload({ salahJamaat: 6 }));
     const errors = await validate(dto);
 
     expect(errors.some((error) => error.property === 'salahJamaat')).toBe(true);

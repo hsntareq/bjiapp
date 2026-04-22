@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 
 import { PersonalReportModule } from './personal-report/personal-report.module';
 import { UsersModule } from './users/users.module';
+import { MonthlyPlanModule } from './monthly-plan/monthly-plan.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     PersonalReportModule,
+    MonthlyPlanModule,
   ],
   controllers: [AppController],
   providers: [AppService],

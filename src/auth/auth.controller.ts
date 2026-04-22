@@ -18,20 +18,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(
-    @Body() body: { email?: string; mobile?: string; password: string },
-  ) {
+  async register(@Body() body: { email?: string; mobile?: string; password: string }) {
     return this.authService.register(body);
   }
 
   @Post('login-email')
-  async loginWithEmail(
-    @Body() body: { email: string; password: string },
-  ): Promise<unknown> {
-    const user: unknown = await this.authService.validateUserByEmail(
-      body.email,
-      body.password,
-    );
+  async loginWithEmail(@Body() body: { email: string; password: string }): Promise<unknown> {
+    const user: unknown = await this.authService.validateUserByEmail(body.email, body.password);
     if (!user) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
@@ -39,13 +32,8 @@ export class AuthController {
   }
 
   @Post('login-mobile')
-  async loginWithMobile(
-    @Body() body: { mobile: string; password: string },
-  ): Promise<unknown> {
-    const user: unknown = await this.authService.validateUserByMobile(
-      body.mobile,
-      body.password,
-    );
+  async loginWithMobile(@Body() body: { mobile: string; password: string }): Promise<unknown> {
+    const user: unknown = await this.authService.validateUserByMobile(body.mobile, body.password);
     if (!user) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
@@ -53,16 +41,11 @@ export class AuthController {
   }
 
   @Post('google')
-  async loginWithGoogle(
-    @Body() body: { googleId: string; email: string },
-  ): Promise<unknown> {
+  async loginWithGoogle(@Body() body: { googleId: string; email: string }): Promise<unknown> {
     if (!body.googleId) {
       throw new HttpException('googleId is required', HttpStatus.BAD_REQUEST);
     }
-    const user: unknown = await this.authService.findOrCreateByGoogle(
-      body.googleId,
-      body.email,
-    );
+    const user: unknown = await this.authService.findOrCreateByGoogle(body.googleId, body.email);
     return this.authService.login(user);
   }
 
@@ -74,10 +57,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<void> {
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response): Promise<void> {
     const token = await this.authService.login(req.user);
     // Redirect to the frontend with the JWT as a query param
     res.redirect(

@@ -42,7 +42,7 @@ export class AuthService {
 
   async validateUserByEmail(email: string, pass: string): Promise<any> {
     const user = await this.usersRepository.findOne({ where: { email } });
-    if (user && user.password && await bcrypt.compare(pass, user.password)) {
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -51,7 +51,7 @@ export class AuthService {
 
   async validateUserByMobile(mobile: string, pass: string): Promise<any> {
     const user = await this.usersRepository.findOne({ where: { mobile } });
-    if (user && user.password && await bcrypt.compare(pass, user.password)) {
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }

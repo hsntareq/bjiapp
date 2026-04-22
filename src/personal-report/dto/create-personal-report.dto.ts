@@ -1,11 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsDateString,
-  IsInt,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, Max, Min } from 'class-validator';
 
 export class CreatePersonalReportDto {
   @IsDateString()

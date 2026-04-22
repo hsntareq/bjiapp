@@ -15,6 +15,7 @@ const app_service_1 = require("./app.service");
 const auth_module_1 = require("./auth/auth.module");
 const personal_report_module_1 = require("./personal-report/personal-report.module");
 const users_module_1 = require("./users/users.module");
+const monthly_plan_module_1 = require("./monthly-plan/monthly-plan.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -39,6 +40,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             personal_report_module_1.PersonalReportModule,
+            monthly_plan_module_1.MonthlyPlanModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

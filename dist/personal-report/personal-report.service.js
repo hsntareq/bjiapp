@@ -72,7 +72,9 @@ let PersonalReportService = class PersonalReportService {
         if (report.orgWorkStartedAt) {
             const accumulatedSeconds = (0, personal_report_utils_1.normalizeOrgWorkTotalSeconds)(report.orgWorkHours, report.orgWorkMinutes, report.orgWorkSeconds);
             const elapsedSeconds = (0, personal_report_utils_1.getElapsedOrgWorkSeconds)(report.orgWorkStartedAt);
-            Object.assign(report, (0, personal_report_utils_1.splitOrgWorkSeconds)(accumulatedSeconds + elapsedSeconds), { orgWorkStartedAt: null });
+            Object.assign(report, (0, personal_report_utils_1.splitOrgWorkSeconds)(accumulatedSeconds + elapsedSeconds), {
+                orgWorkStartedAt: null,
+            });
         }
         const savedReport = await this.reportRepo.save(report);
         return this.normalizeReport(savedReport);

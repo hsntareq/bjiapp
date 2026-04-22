@@ -1,12 +1,12 @@
 import {
-	Body,
-	Controller,
-	Get,
-	NotFoundException,
-	Post,
-	Query,
-	Request,
-	UseGuards,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from '../users/users.service';
@@ -63,10 +63,7 @@ export class PersonalReportController {
   ): Promise<PersonalReport | null> {
     // Use ?date=YYYY-MM-DD, default to today
     const useDate = date || new Date().toISOString().slice(0, 10);
-    const report = await this.reportService.getReportByDate(
-      req.user.userId,
-      useDate,
-    );
+    const report = await this.reportService.getReportByDate(req.user.userId, useDate);
     return report ?? null;
   }
 }

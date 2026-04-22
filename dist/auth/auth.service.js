@@ -85,7 +85,7 @@ let AuthService = class AuthService {
     }
     async validateUserByEmail(email, pass) {
         const user = await this.usersRepository.findOne({ where: { email } });
-        if (user && user.password && await bcrypt.compare(pass, user.password)) {
+        if (user && user.password && (await bcrypt.compare(pass, user.password))) {
             const { password, ...result } = user;
             return result;
         }
@@ -93,7 +93,7 @@ let AuthService = class AuthService {
     }
     async validateUserByMobile(mobile, pass) {
         const user = await this.usersRepository.findOne({ where: { mobile } });
-        if (user && user.password && await bcrypt.compare(pass, user.password)) {
+        if (user && user.password && (await bcrypt.compare(pass, user.password))) {
             const { password, ...result } = user;
             return result;
         }

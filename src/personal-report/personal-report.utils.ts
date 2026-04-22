@@ -36,10 +36,7 @@ export function splitOrgWorkSeconds(totalSeconds: number): {
   orgWorkMinutes: number;
   orgWorkSeconds: number;
 } {
-  const normalizedTotal = Math.min(
-    MAX_ORG_WORK_SECONDS,
-    Math.max(0, Math.trunc(totalSeconds)),
-  );
+  const normalizedTotal = Math.min(MAX_ORG_WORK_SECONDS, Math.max(0, Math.trunc(totalSeconds)));
 
   return {
     orgWorkHours: Math.floor(normalizedTotal / 3600),
@@ -48,10 +45,7 @@ export function splitOrgWorkSeconds(totalSeconds: number): {
   };
 }
 
-export function getElapsedOrgWorkSeconds(
-  startedAt: Date,
-  now: Date = new Date(),
-): number {
+export function getElapsedOrgWorkSeconds(startedAt: Date, now: Date = new Date()): number {
   const diffMs = now.getTime() - startedAt.getTime();
   if (!Number.isFinite(diffMs) || diffMs <= 0) {
     return 0;

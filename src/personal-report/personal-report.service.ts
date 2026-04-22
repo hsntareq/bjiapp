@@ -17,10 +17,7 @@ export class PersonalReportService {
     private reportRepo: Repository<PersonalReport>,
   ) {}
 
-  private async findByUserAndDate(
-    userId: number,
-    date: string,
-  ): Promise<PersonalReport | null> {
+  private async findByUserAndDate(userId: number, date: string): Promise<PersonalReport | null> {
     return this.reportRepo.findOne({
       where: { user: { id: userId }, date },
     });
@@ -37,10 +34,7 @@ export class PersonalReportService {
     return report;
   }
 
-  async createReport(
-    user: User,
-    data: Partial<PersonalReport>,
-  ): Promise<PersonalReport> {
+  async createReport(user: User, data: Partial<PersonalReport>): Promise<PersonalReport> {
     const existingReport =
       data.date != null ? await this.findByUserAndDate(user.id, data.date) : null;
     const normalizedOrgWorkSeconds = normalizeOrgWorkTotalSeconds(
@@ -92,11 +86,9 @@ export class PersonalReportService {
         report.orgWorkSeconds,
       );
       const elapsedSeconds = getElapsedOrgWorkSeconds(report.orgWorkStartedAt);
-      Object.assign(
-        report,
-        splitOrgWorkSeconds(accumulatedSeconds + elapsedSeconds),
-        { orgWorkStartedAt: null },
-      );
+      Object.assign(report, splitOrgWorkSeconds(accumulatedSeconds + elapsedSeconds), {
+        orgWorkStartedAt: null,
+      });
     }
 
     const savedReport = await this.reportRepo.save(report);
@@ -110,10 +102,7 @@ export class PersonalReportService {
     });
   }
 
-  async getReportByDate(
-    userId: number,
-    date: string,
-  ): Promise<PersonalReport | undefined> {
+  async getReportByDate(userId: number, date: string): Promise<PersonalReport | undefined> {
     const result = await this.findByUserAndDate(userId, date);
     if (!result) {
       return undefined;
