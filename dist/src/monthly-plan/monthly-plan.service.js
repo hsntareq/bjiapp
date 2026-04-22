@@ -25,6 +25,13 @@ let MonthlyPlanService = class MonthlyPlanService {
         return this.repo.findOne({ where: { user: { id: user.id }, month } });
     }
     async upsert(user, dto) {
+        const [year, monthNum] = dto.month.split('-').map(Number);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        if (year < currentYear || (year === currentYear && monthNum < currentMonth)) {
+            throw new common_1.BadRequestException('Plans for previous months cannot be modified.');
+        }
         const existing = await this.getByMonth(user, dto.month);
         const data = { ...dto };
         if (!data.socialHelp)

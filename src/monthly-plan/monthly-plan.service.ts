@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MonthlyPlan } from './monthly-plan.entity';
@@ -17,6 +17,15 @@ export class MonthlyPlanService {
   }
 
   async upsert(user: User, dto: UpsertMonthlyPlanDto): Promise<MonthlyPlan> {
+    const [year, monthNum] = dto.month.split('-').map(Number);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (year < currentYear || (year === currentYear && monthNum < currentMonth)) {
+      throw new BadRequestException('Plans for previous months cannot be modified.');
+    }
+
     const existing = await this.getByMonth(user, dto.month);
 
     // Ensure arrays are strings or empty arrays properly
