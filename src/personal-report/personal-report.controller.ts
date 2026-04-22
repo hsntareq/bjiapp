@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from '../users/users.service';
+import { CreatePersonalReportDto } from './dto/create-personal-report.dto';
+import { PersonalReportTimerDto } from './dto/personal-report-timer.dto';
 import { PersonalReport } from './personal-report.entity';
 import { PersonalReportService } from './personal-report.service';
 
@@ -24,11 +26,33 @@ export class PersonalReportController {
   @Post()
   async create(
     @Request() req: { user: { userId: number; username: string } },
-    @Body() body: Partial<PersonalReport>,
+    @Body() body: CreatePersonalReportDto,
   ) {
     const user = await this.usersService.findById(req.user.userId);
     if (!user) throw new NotFoundException('User not found');
     return this.reportService.createReport(user, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('timer/start')
+  async startTimer(
+    @Request() req: { user: { userId: number; username: string } },
+    @Body() body: PersonalReportTimerDto,
+  ) {
+    const user = await this.usersService.findById(req.user.userId);
+    if (!user) throw new NotFoundException('User not found');
+    return this.reportService.startOrgWorkTimer(user, body.date);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('timer/pause')
+  async pauseTimer(
+    @Request() req: { user: { userId: number; username: string } },
+    @Body() body: PersonalReportTimerDto,
+  ) {
+    const user = await this.usersService.findById(req.user.userId);
+    if (!user) throw new NotFoundException('User not found');
+    return this.reportService.pauseOrgWorkTimer(user, body.date);
   }
 
   @UseGuards(AuthGuard('jwt'))

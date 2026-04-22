@@ -40,8 +40,8 @@ __decorate([
     __metadata("design:type", Number)
 ], PersonalReport.prototype, "literature", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
+    (0, typeorm_1.Column)({ type: 'integer', default: 0 }),
+    __metadata("design:type", Number)
 ], PersonalReport.prototype, "salahJamaat", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 0 }),
@@ -80,6 +80,14 @@ __decorate([
     __metadata("design:type", Number)
 ], PersonalReport.prototype, "orgWorkMinutes", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], PersonalReport.prototype, "orgWorkSeconds", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], PersonalReport.prototype, "orgWorkStartedAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], PersonalReport.prototype, "safar", void 0);
@@ -96,6 +104,7 @@ __decorate([
     __metadata("design:type", Date)
 ], PersonalReport.prototype, "createdAt", void 0);
 exports.PersonalReport = PersonalReport = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Unique)(['user', 'date'])
 ], PersonalReport);
 //# sourceMappingURL=personal-report.entity.js.map

@@ -17,13 +17,65 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const personal_report_entity_1 = require("./personal-report.entity");
+const personal_report_utils_1 = require("./personal-report.utils");
 let PersonalReportService = class PersonalReportService {
     constructor(reportRepo) {
         this.reportRepo = reportRepo;
     }
+    async findByUserAndDate(userId, date) {
+        return this.reportRepo.findOne({
+            where: { user: { id: userId }, date },
+        });
+    }
+    normalizeReport(report) {
+        report.salahJamaat = (0, personal_report_utils_1.normalizeSalahJamaat)(report.salahJamaat);
+        const normalizedOrgWorkSeconds = (0, personal_report_utils_1.normalizeOrgWorkTotalSeconds)(report.orgWorkHours, report.orgWorkMinutes, report.orgWorkSeconds);
+        Object.assign(report, (0, personal_report_utils_1.splitOrgWorkSeconds)(normalizedOrgWorkSeconds));
+        return report;
+    }
     async createReport(user, data) {
-        const report = this.reportRepo.create({ ...data, user });
-        return this.reportRepo.save(report);
+        const existingReport = data.date != null ? await this.findByUserAndDate(user.id, data.date) : null;
+        const normalizedOrgWorkSeconds = (0, personal_report_utils_1.normalizeOrgWorkTotalSeconds)(data.orgWorkHours, data.orgWorkMinutes, data.orgWorkSeconds);
+        const report = this.reportRepo.create({
+            ...(existingReport ?? {}),
+            ...data,
+            ...(0, personal_report_utils_1.splitOrgWorkSeconds)(normalizedOrgWorkSeconds),
+            salahJamaat: (0, personal_report_utils_1.normalizeSalahJamaat)(data.salahJamaat),
+            user,
+            orgWorkStartedAt: existingReport?.orgWorkStartedAt ?? null,
+        });
+        const savedReport = await this.reportRepo.save(report);
+        return this.normalizeReport(savedReport);
+    }
+    async startOrgWorkTimer(user, date) {
+        const existingReport = await this.findByUserAndDate(user.id, date);
+        const report = this.reportRepo.create({
+            ...(existingReport ?? {}),
+            date,
+            user,
+            orgWorkStartedAt: existingReport?.orgWorkStartedAt ?? new Date(),
+        });
+        const savedReport = await this.reportRepo.save(report);
+        return this.normalizeReport(savedReport);
+    }
+    async pauseOrgWorkTimer(user, date) {
+        const report = await this.findByUserAndDate(user.id, date);
+        if (!report) {
+            const createdReport = this.reportRepo.create({
+                date,
+                user,
+                orgWorkStartedAt: null,
+            });
+            const savedReport = await this.reportRepo.save(createdReport);
+            return this.normalizeReport(savedReport);
+        }
+        if (report.orgWorkStartedAt) {
+            const accumulatedSeconds = (0, personal_report_utils_1.normalizeOrgWorkTotalSeconds)(report.orgWorkHours, report.orgWorkMinutes, report.orgWorkSeconds);
+            const elapsedSeconds = (0, personal_report_utils_1.getElapsedOrgWorkSeconds)(report.orgWorkStartedAt);
+            Object.assign(report, (0, personal_report_utils_1.splitOrgWorkSeconds)(accumulatedSeconds + elapsedSeconds), { orgWorkStartedAt: null });
+        }
+        const savedReport = await this.reportRepo.save(report);
+        return this.normalizeReport(savedReport);
     }
     async getReportsForUser(userId) {
         return this.reportRepo.find({
@@ -32,10 +84,11 @@ let PersonalReportService = class PersonalReportService {
         });
     }
     async getReportByDate(userId, date) {
-        const result = await this.reportRepo.findOne({
-            where: { user: { id: userId }, date },
-        });
-        return result ?? undefined;
+        const result = await this.findByUserAndDate(userId, date);
+        if (!result) {
+            return undefined;
+        }
+        return this.normalizeReport(result);
     }
 };
 exports.PersonalReportService = PersonalReportService;

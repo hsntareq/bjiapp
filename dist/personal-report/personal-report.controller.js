@@ -16,6 +16,8 @@ exports.PersonalReportController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const users_service_1 = require("../users/users.service");
+const create_personal_report_dto_1 = require("./dto/create-personal-report.dto");
+const personal_report_timer_dto_1 = require("./dto/personal-report-timer.dto");
 const personal_report_service_1 = require("./personal-report.service");
 let PersonalReportController = class PersonalReportController {
     constructor(reportService, usersService) {
@@ -27,6 +29,18 @@ let PersonalReportController = class PersonalReportController {
         if (!user)
             throw new common_1.NotFoundException('User not found');
         return this.reportService.createReport(user, body);
+    }
+    async startTimer(req, body) {
+        const user = await this.usersService.findById(req.user.userId);
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        return this.reportService.startOrgWorkTimer(user, body.date);
+    }
+    async pauseTimer(req, body) {
+        const user = await this.usersService.findById(req.user.userId);
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        return this.reportService.pauseOrgWorkTimer(user, body.date);
     }
     async getForUser(req, date) {
         const useDate = date || new Date().toISOString().slice(0, 10);
@@ -41,9 +55,27 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, create_personal_report_dto_1.CreatePersonalReportDto]),
     __metadata("design:returntype", Promise)
 ], PersonalReportController.prototype, "create", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Post)('timer/start'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, personal_report_timer_dto_1.PersonalReportTimerDto]),
+    __metadata("design:returntype", Promise)
+], PersonalReportController.prototype, "startTimer", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Post)('timer/pause'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, personal_report_timer_dto_1.PersonalReportTimerDto]),
+    __metadata("design:returntype", Promise)
+], PersonalReportController.prototype, "pauseTimer", null);
 __decorate([
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     (0, common_1.Get)(),

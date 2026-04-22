@@ -1,7 +1,4 @@
-import { User } from '../users/user.entity';
-export declare class PersonalReport {
-    id: number;
-    user: User;
+export declare class CreatePersonalReportDto {
     date: string;
     quranStudy: boolean;
     haditsRead: number;
@@ -17,9 +14,7 @@ export declare class PersonalReport {
     orgWorkHours: number;
     orgWorkMinutes: number;
     orgWorkSeconds: number;
-    orgWorkStartedAt: Date | null;
     safar: boolean;
     reportKeeping: boolean;
     selfCriticism: boolean;
-    createdAt: Date;
 }

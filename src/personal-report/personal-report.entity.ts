@@ -1,13 +1,15 @@
 import {
-	Column,
-	CreateDateColumn,
-	Entity,
+  Column,
+  CreateDateColumn,
+  Entity,
 	ManyToOne,
 	PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
 @Entity()
+@Unique(['user', 'date'])
 export class PersonalReport {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -28,8 +30,8 @@ export class PersonalReport {
   @Column({ default: 0 })
   literature!: number;
 
-  @Column({ default: false })
-  salahJamaat!: boolean;
+  @Column({ type: 'integer', default: 0 })
+  salahJamaat!: number;
 
   @Column({ default: 0 })
   targetContactDawah!: number;
@@ -57,6 +59,12 @@ export class PersonalReport {
 
   @Column({ default: 0 })
   orgWorkMinutes!: number;
+
+  @Column({ default: 0 })
+  orgWorkSeconds!: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  orgWorkStartedAt!: Date | null;
 
   @Column({ default: false })
   safar!: boolean;
