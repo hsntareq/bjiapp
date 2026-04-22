@@ -1,3 +1,4 @@
+import { PersonalReport } from '../personal-report/personal-report.entity';
 export declare class User {
     id: number;
     email: string;
@@ -5,4 +6,5 @@ export declare class User {
     password: string;
     googleId: string;
     isActive: boolean;
+    personalReports: PersonalReport[];
 }

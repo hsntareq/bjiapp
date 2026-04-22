@@ -53,8 +53,6 @@ const bcrypt = __importStar(require("bcryptjs"));
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("../users/user.entity");
 let AuthService = class AuthService {
-    usersRepository;
-    jwtService;
     constructor(usersRepository, jwtService) {
         this.usersRepository = usersRepository;
         this.jwtService = jwtService;

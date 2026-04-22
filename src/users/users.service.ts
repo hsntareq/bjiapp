@@ -26,6 +26,11 @@ export class UsersService {
     return user === null ? undefined : user;
   }
 
+  async findById(id: number): Promise<User | undefined> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    return user === null ? undefined : user;
+  }
+
   async create(user: Partial<User>): Promise<User> {
     const newUser = this.usersRepository.create(user);
     return this.usersRepository.save(newUser);

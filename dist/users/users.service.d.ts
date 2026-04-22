@@ -6,5 +6,6 @@ export declare class UsersService {
     findByEmail(email: string): Promise<User | undefined>;
     findByMobile(mobile: string): Promise<User | undefined>;
     findByGoogleId(googleId: string): Promise<User | undefined>;
+    findById(id: number): Promise<User | undefined>;
     create(user: Partial<User>): Promise<User>;
 }

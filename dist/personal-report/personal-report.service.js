@@ -12,40 +12,36 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UsersService = void 0;
+exports.PersonalReportService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const user_entity_1 = require("./user.entity");
-let UsersService = class UsersService {
-    constructor(usersRepository) {
-        this.usersRepository = usersRepository;
+const personal_report_entity_1 = require("./personal-report.entity");
+let PersonalReportService = class PersonalReportService {
+    constructor(reportRepo) {
+        this.reportRepo = reportRepo;
     }
-    async findByEmail(email) {
-        const user = await this.usersRepository.findOne({ where: { email } });
-        return user === null ? undefined : user;
+    async createReport(user, data) {
+        const report = this.reportRepo.create({ ...data, user });
+        return this.reportRepo.save(report);
     }
-    async findByMobile(mobile) {
-        const user = await this.usersRepository.findOne({ where: { mobile } });
-        return user === null ? undefined : user;
+    async getReportsForUser(userId) {
+        return this.reportRepo.find({
+            where: { user: { id: userId } },
+            order: { date: 'DESC' },
+        });
     }
-    async findByGoogleId(googleId) {
-        const user = await this.usersRepository.findOne({ where: { googleId } });
-        return user === null ? undefined : user;
-    }
-    async findById(id) {
-        const user = await this.usersRepository.findOne({ where: { id } });
-        return user === null ? undefined : user;
-    }
-    async create(user) {
-        const newUser = this.usersRepository.create(user);
-        return this.usersRepository.save(newUser);
+    async getReportByDate(userId, date) {
+        const result = await this.reportRepo.findOne({
+            where: { user: { id: userId }, date },
+        });
+        return result ?? undefined;
     }
 };
-exports.UsersService = UsersService;
-exports.UsersService = UsersService = __decorate([
+exports.PersonalReportService = PersonalReportService;
+exports.PersonalReportService = PersonalReportService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(0, (0, typeorm_1.InjectRepository)(personal_report_entity_1.PersonalReport)),
     __metadata("design:paramtypes", [typeorm_2.Repository])
-], UsersService);
-//# sourceMappingURL=users.service.js.map
+], PersonalReportService);
+//# sourceMappingURL=personal-report.service.js.map
