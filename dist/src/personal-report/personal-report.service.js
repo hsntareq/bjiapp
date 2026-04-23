@@ -95,7 +95,8 @@ let PersonalReportService = class PersonalReportService {
     async getMonthlySummary(userId, month) {
         const reports = await this.reportRepo.createQueryBuilder('report')
             .where('report.userId = :userId', { userId })
-            .andWhere('report.date LIKE :month', { month: `${month}-%` })
+            .andWhere('report.date >= :startDate', { startDate: `${month}-01` })
+            .andWhere('report.date <= :endDate', { endDate: `${month}-31` })
             .getMany();
         const sum = {
             quranStudy: 0,
