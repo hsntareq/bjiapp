@@ -25,6 +25,28 @@ export declare class PersonalReportController {
             username: string;
         };
     }, body: PersonalReportTimerDto): Promise<PersonalReport>;
+    getMonthlySummary(req: {
+        user: {
+            userId: number;
+            username: string;
+        };
+    }, month: string): Promise<{
+        quranStudy: number;
+        haditsRead: number;
+        literature: number;
+        salahJamaat: number;
+        targetContactDawah: number;
+        targetContactWorker: number;
+        targetContactMember: number;
+        workerContact: number;
+        bookDistribution: number;
+        familyMeeting: number;
+        socialWork: number;
+        orgWorkTotalSeconds: number;
+        safar: number;
+        reportKeeping: number;
+        selfCriticism: number;
+    }>;
     getForUser(req: {
         user: {
             userId: number;

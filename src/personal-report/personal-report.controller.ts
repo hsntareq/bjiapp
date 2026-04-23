@@ -56,6 +56,18 @@ export class PersonalReportController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('monthly-summary')
+  async getMonthlySummary(
+    @Request() req: { user: { userId: number; username: string } },
+    @Query('month') month: string,
+  ) {
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      throw new NotFoundException('Invalid month format. Expected YYYY-MM');
+    }
+    return this.reportService.getMonthlySummary(req.user.userId, month);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   async getForUser(
     @Request() req: { user: { userId: number; username: string } },

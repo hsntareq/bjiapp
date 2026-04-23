@@ -92,6 +92,54 @@ let PersonalReportService = class PersonalReportService {
         }
         return this.normalizeReport(result);
     }
+    async getMonthlySummary(userId, month) {
+        const reports = await this.reportRepo.createQueryBuilder('report')
+            .where('report.userId = :userId', { userId })
+            .andWhere('report.date LIKE :month', { month: `${month}-%` })
+            .getMany();
+        const sum = {
+            quranStudy: 0,
+            haditsRead: 0,
+            literature: 0,
+            salahJamaat: 0,
+            targetContactDawah: 0,
+            targetContactWorker: 0,
+            targetContactMember: 0,
+            workerContact: 0,
+            bookDistribution: 0,
+            familyMeeting: 0,
+            socialWork: 0,
+            orgWorkTotalSeconds: 0,
+            safar: 0,
+            reportKeeping: 0,
+            selfCriticism: 0,
+        };
+        for (const r of reports) {
+            if (r.quranStudy)
+                sum.quranStudy += 1;
+            sum.haditsRead += r.haditsRead || 0;
+            sum.literature += r.literature || 0;
+            sum.salahJamaat += r.salahJamaat || 0;
+            sum.targetContactDawah += r.targetContactDawah || 0;
+            sum.targetContactWorker += r.targetContactWorker || 0;
+            sum.targetContactMember += r.targetContactMember || 0;
+            sum.workerContact += r.workerContact || 0;
+            sum.bookDistribution += r.bookDistribution || 0;
+            if (r.familyMeeting)
+                sum.familyMeeting += 1;
+            if (r.socialWork)
+                sum.socialWork += 1;
+            const seconds = (r.orgWorkHours || 0) * 3600 + (r.orgWorkMinutes || 0) * 60 + (r.orgWorkSeconds || 0);
+            sum.orgWorkTotalSeconds += seconds;
+            if (r.safar)
+                sum.safar += 1;
+            if (r.reportKeeping)
+                sum.reportKeeping += 1;
+            if (r.selfCriticism)
+                sum.selfCriticism += 1;
+        }
+        return sum;
+    }
 };
 exports.PersonalReportService = PersonalReportService;
 exports.PersonalReportService = PersonalReportService = __decorate([

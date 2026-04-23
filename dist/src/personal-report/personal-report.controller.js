@@ -42,6 +42,12 @@ let PersonalReportController = class PersonalReportController {
             throw new common_1.NotFoundException('User not found');
         return this.reportService.pauseOrgWorkTimer(user, body.date);
     }
+    async getMonthlySummary(req, month) {
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+            throw new common_1.NotFoundException('Invalid month format. Expected YYYY-MM');
+        }
+        return this.reportService.getMonthlySummary(req.user.userId, month);
+    }
     async getForUser(req, date) {
         const useDate = date || new Date().toISOString().slice(0, 10);
         const report = await this.reportService.getReportByDate(req.user.userId, useDate);
@@ -76,6 +82,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, personal_report_timer_dto_1.PersonalReportTimerDto]),
     __metadata("design:returntype", Promise)
 ], PersonalReportController.prototype, "pauseTimer", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Get)('monthly-summary'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('month')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], PersonalReportController.prototype, "getMonthlySummary", null);
 __decorate([
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     (0, common_1.Get)(),
