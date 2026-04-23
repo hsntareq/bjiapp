@@ -14,7 +14,6 @@ export class PersonalReport {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   @ManyToOne(() => User, (user) => user.personalReports, { eager: true })
   user!: User;
 

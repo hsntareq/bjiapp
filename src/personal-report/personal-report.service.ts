@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { User } from '../users/user.entity';
 import { PersonalReport } from './personal-report.entity';
 import {
@@ -111,11 +111,17 @@ export class PersonalReportService {
   }
 
   async getMonthlySummary(userId: number, month: string) {
-    const reports = await this.reportRepo.createQueryBuilder('report')
-      .where('report.userId = :userId', { userId })
-      .andWhere('report.date >= :startDate', { startDate: `${month}-01` })
-      .andWhere('report.date <= :endDate', { endDate: `${month}-31` })
-      .getMany();
+    const [year, monthNum] = month.split('-').map(Number);
+    const startDate = `${month}-01`;
+    const lastDay = new Date(year, monthNum, 0).getDate();
+    const endDate = `${month}-${String(lastDay).padStart(2, '0')}`;
+
+    const reports = await this.reportRepo.find({
+      where: {
+        user: { id: userId },
+        date: Between(startDate, endDate),
+      },
+    });
 
     const sum = {
       quranStudy: 0,
@@ -147,8 +153,9 @@ export class PersonalReportService {
       sum.bookDistribution += r.bookDistribution || 0;
       if (r.familyMeeting) sum.familyMeeting += 1;
       if (r.socialWork) sum.socialWork += 1;
-      
-      const seconds = (r.orgWorkHours || 0) * 3600 + (r.orgWorkMinutes || 0) * 60 + (r.orgWorkSeconds || 0);
+
+      const seconds =
+        (r.orgWorkHours || 0) * 3600 + (r.orgWorkMinutes || 0) * 60 + (r.orgWorkSeconds || 0);
       sum.orgWorkTotalSeconds += seconds;
 
       if (r.safar) sum.safar += 1;
