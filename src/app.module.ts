@@ -5,10 +5,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 
-import { PersonalReportModule } from './personal-report/personal-report.module';
-import { UsersModule } from './users/users.module';
+import { SeedDataModule } from './common/seed-data.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { MonthlyPlanModule } from './monthly-plan/monthly-plan.module';
 import { MonthlyReportModule } from './monthly-report/monthly-report.module';
+import { OrganizationModule } from './organization/organization.module';
+import { OrgPositionModule } from './org-position/org-position.module';
+import { PersonalReportModule } from './personal-report/personal-report.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -24,14 +28,26 @@ import { MonthlyReportModule } from './monthly-report/monthly-report.module';
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: true, // Set to false in production
+        synchronize: false,
+        // Connection pooling to prevent query conflicts
+        poolSize: 10,
+        connectionLimit: 20,
+        // Prevent deprecated pg query warnings
+        extra: {
+          max: 20,
+          connectionTimeoutMillis: 5000,
+        },
       }),
     }),
+    SeedDataModule,
     AuthModule,
     UsersModule,
+    OrganizationModule,
+    OrgPositionModule,
     PersonalReportModule,
     MonthlyPlanModule,
     MonthlyReportModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

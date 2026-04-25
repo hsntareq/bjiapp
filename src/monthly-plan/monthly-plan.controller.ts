@@ -15,7 +15,6 @@ import { UpsertMonthlyPlanDto } from './dto/monthly-plan.dto';
 import { UsersService } from '../users/users.service';
 
 @Controller('monthly-plan')
-@UseGuards(AuthGuard('jwt'))
 export class MonthlyPlanController {
   constructor(
     private readonly service: MonthlyPlanService,
@@ -23,13 +22,16 @@ export class MonthlyPlanController {
   ) {}
 
   @Get()
-  async getPlan(@Req() req: any, @Query('month') month: string) {
-    if (!req.user) throw new UnauthorizedException();
-    const user = await this.usersService.findById(req.user.userId);
+  async getPlan(@Req() req: any, @Query('month') month: string, @Query('userId') userId?: string) {
+    // Get userId from param or authenticated user
+    const resolvedUserId = userId || req.user?.userId;
+    if (!resolvedUserId) throw new UnauthorizedException('userId required');
+    const user = await this.usersService.findById(parseInt(resolvedUserId));
     if (!user) throw new UnauthorizedException();
     return this.service.getByMonth(user, month);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   async upsertPlan(@Req() req: any, @Body() dto: UpsertMonthlyPlanDto) {
     if (!req.user) throw new UnauthorizedException();

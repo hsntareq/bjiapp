@@ -79,7 +79,23 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.email || user.mobile, sub: user.id };
+    // Load full user with role and organization for JWT payload
+    const fullUser = await this.usersRepository.findOne({
+      where: { id: user.id },
+      relations: ['role', 'organization'],
+    });
+
+    if (!fullUser) {
+      throw new Error('User not found');
+    }
+
+    const payload = {
+      username: fullUser.email || fullUser.mobile,
+      sub: fullUser.id,
+      organizationId: fullUser.organizationId,
+      roleId: fullUser.roleId,
+      canCreateUsers: fullUser.canCreateUsers,
+    };
     return {
       access_token: this.jwtService.sign(payload),
     };

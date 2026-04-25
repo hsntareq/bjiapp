@@ -55,27 +55,27 @@ export class PersonalReportController {
     return this.reportService.pauseOrgWorkTimer(user, body.date);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get('monthly-summary')
   async getMonthlySummary(
-    @Request() req: { user: { userId: number; username: string } },
     @Query('month') month: string,
+    @Query('userId') userId?: string,
   ) {
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       throw new NotFoundException('Invalid month format. Expected YYYY-MM');
     }
-    return this.reportService.getMonthlySummary(req.user.userId, month);
+    const parsedUserId = userId ? parseInt(userId) : 0;
+    return this.reportService.getMonthlySummary(parsedUserId, month);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get()
   async getForUser(
-    @Request() req: { user: { userId: number; username: string } },
     @Query('date') date?: string,
+    @Query('userId') userId?: string,
   ): Promise<PersonalReport | null> {
     // Use ?date=YYYY-MM-DD, default to today
     const useDate = date || new Date().toISOString().slice(0, 10);
-    const report = await this.reportService.getReportByDate(req.user.userId, useDate);
+    const parsedUserId = userId ? parseInt(userId) : 0;
+    const report = await this.reportService.getReportByDate(parsedUserId, useDate);
     return report ?? null;
   }
 }
