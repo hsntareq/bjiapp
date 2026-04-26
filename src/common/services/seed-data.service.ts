@@ -171,6 +171,162 @@ export class SeedDataService {
   }
 
   private async createOrganizationHierarchy(permissions: Permission[]) {
+    // Helper to generate a random integer in a range
+    function randInt(min: number, max: number) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Helper to create users for a unit
+    const createUnitUsers = async (unitOrg, unitMemberRole, wardUser) => {
+      const numPeople = randInt(5, 10);
+      // 1 member
+      const memberUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_member`;
+      const member = this.userRepo.create({
+        email: `${memberUsername}@bjioms.com`,
+        password: await this.hashPassword(`${memberUsername}@bjioms.com`),
+        name: `${unitOrg.name} Member`,
+        organization: unitOrg,
+        role: unitMemberRole,
+        canCreateUsers: false,
+        createdBy: wardUser,
+      });
+      await this.userRepo.save(member);
+      // Activists
+      for (let i = 1; i < numPeople; i++) {
+        const activistUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_activist${i}`;
+        const activist = this.userRepo.create({
+          email: `${activistUsername}@bjioms.com`,
+          password: await this.hashPassword(`${activistUsername}@bjioms.com`),
+          name: `${unitOrg.name} Activist ${i}`,
+          organization: unitOrg,
+          role: unitMemberRole,
+          canCreateUsers: false,
+          createdBy: wardUser,
+        });
+        await this.userRepo.save(activist);
+      }
+      // Associates (more than 10)
+      const numAssociates = randInt(11, 18);
+      for (let i = 1; i <= numAssociates; i++) {
+        const associateUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_associate${i}`;
+        const associate = this.userRepo.create({
+          email: `${associateUsername}@bjioms.com`,
+          password: await this.hashPassword(`${associateUsername}@bjioms.com`),
+          name: `${unitOrg.name} Associate ${i}`,
+          organization: unitOrg,
+          role: unitMemberRole,
+          canCreateUsers: false,
+          createdBy: wardUser,
+        });
+        await this.userRepo.save(associate);
+      }
+    };
+
+    // Helper to create users for a ward
+    const createWardUsers = async (wardOrg, wardCoordinatorRole, thanaUser, unitUsers) => {
+      // 3-6 direct ward members
+      const numWardMembers = randInt(3, 6);
+      for (let i = 1; i <= numWardMembers; i++) {
+        const username = `${wardOrg.name.toLowerCase().replace(/\s+/g, '_')}_member${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${wardOrg.name} Member ${i}`,
+          organization: wardOrg,
+          role: wardCoordinatorRole,
+          canCreateUsers: false,
+          createdBy: thanaUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // 5-8 team (unit presidents/ward secretaries)
+      const numTeam = randInt(5, 8);
+      for (let i = 1; i <= numTeam; i++) {
+        const username = `${wardOrg.name.toLowerCase().replace(/\s+/g, '_')}_team${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${wardOrg.name} Team ${i}`,
+          organization: wardOrg,
+          role: wardCoordinatorRole,
+          canCreateUsers: false,
+          createdBy: thanaUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // Add users from units (unitUsers)
+      // (Assume unitUsers is an array of user objects, if needed for future logic)
+    };
+
+    // Helper to create users for a thana
+    const createThanaUsers = async (thanaOrg, thanaOfficerRole, cityUser, wardUsers) => {
+      // 5-12 secretaries
+      const numSecretaries = randInt(5, 12);
+      for (let i = 1; i <= numSecretaries; i++) {
+        const username = `${thanaOrg.name.toLowerCase().replace(/\s+/g, '_')}_secretary${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${thanaOrg.name} Secretary ${i}`,
+          organization: thanaOrg,
+          role: thanaOfficerRole,
+          canCreateUsers: false,
+          createdBy: cityUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // 5-8 team (ward presidents/thana secretaries)
+      const numTeam = randInt(5, 8);
+      for (let i = 1; i <= numTeam; i++) {
+        const username = `${thanaOrg.name.toLowerCase().replace(/\s+/g, '_')}_team${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${thanaOrg.name} Team ${i}`,
+          organization: thanaOrg,
+          role: thanaOfficerRole,
+          canCreateUsers: false,
+          createdBy: cityUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // Add users from wards (wardUsers)
+    };
+
+    // Helper to create users for a city
+    const createCityUsers = async (cityOrg, cityOfficerRole, divisionUser, thanaUsers) => {
+      // 8-15 secretaries
+      const numSecretaries = randInt(8, 15);
+      for (let i = 1; i <= numSecretaries; i++) {
+        const username = `${cityOrg.name.toLowerCase().replace(/\s+/g, '_')}_secretary${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${cityOrg.name} Secretary ${i}`,
+          organization: cityOrg,
+          role: cityOfficerRole,
+          canCreateUsers: false,
+          createdBy: divisionUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // 5-10 general members for direct thana org
+      const numGeneral = randInt(5, 10);
+      for (let i = 1; i <= numGeneral; i++) {
+        const username = `${cityOrg.name.toLowerCase().replace(/\s+/g, '_')}_general${i}`;
+        const user = this.userRepo.create({
+          email: `${username}@bjioms.com`,
+          password: await this.hashPassword(`${username}@bjioms.com`),
+          name: `${cityOrg.name} General Member ${i}`,
+          organization: cityOrg,
+          role: cityOfficerRole,
+          canCreateUsers: false,
+          createdBy: divisionUser,
+        });
+        await this.userRepo.save(user);
+      }
+      // Add users from thanas (thanaUsers)
+    };
     const bangladeshiStructure = {
       divisions: [
         {
@@ -275,7 +431,7 @@ export class SeedDataService {
     // Create Central User
     const centralUser = this.userRepo.create({
       email: 'central@bjioms.com',
-      password: await this.hashPassword('Central@123'),
+      password: await this.hashPassword('admin@bjioms.com'),
       name: 'Central Administrator',
       mobile: '+880170000001',
       organization: centralOrg,
@@ -309,7 +465,7 @@ export class SeedDataService {
       const divisionEmail = `division-${division.name.toLowerCase().replace(/\s+/g, '-')}@bjioms.com`;
       const divisionUser = this.userRepo.create({
         email: divisionEmail,
-        password: await this.hashPassword('City@123'),
+        password: await this.hashPassword('city_admin@bjioms.com'),
         name: `${division.name} Division Manager`,
         organization: divisionOrg,
         role: divisionManagerRole,
@@ -341,19 +497,28 @@ export class SeedDataService {
         });
         await this.roleRepo.save(cityOfficerRole);
 
-        // Create City User with unique email (including division to make it unique)
-        const cityEmail = `city-${division.name.toLowerCase().replace(/\s+/g, '-')}-${city.name.toLowerCase().replace(/\s+/g, '-')}@bjioms.com`;
-        const cityUser = this.userRepo.create({
-          email: cityEmail,
-          password: await this.hashPassword('City@123'),
-          name: `${city.name} City Officer`,
-          organization: cityOrg,
-          role: cityOfficerRole,
-          canCreateUsers: true,
-          createdBy: divisionUser,
-        });
-        await this.userRepo.save(cityUser);
-
+        // Create users for this city and get cityUser
+        let cityUser: User | undefined = undefined;
+        {
+          // 8-15 secretaries (pick the first as cityUser for hierarchy)
+          const numSecretaries = 8; // Use minimum for deterministic assignment
+          let createdUsers: User[] = [];
+          for (let i = 1; i <= numSecretaries; i++) {
+            const username = `${cityOrg.name.toLowerCase().replace(/\s+/g, '_')}_secretary${i}`;
+            const user = this.userRepo.create({
+              email: `${username}@bjioms.com`,
+              password: await this.hashPassword(`${username}@bjioms.com`),
+              name: `${cityOrg.name} Secretary ${i}`,
+              organization: cityOrg,
+              role: cityOfficerRole,
+              canCreateUsers: false,
+              createdBy: divisionUser,
+            });
+            const savedUser = await this.userRepo.save(user);
+            createdUsers.push(savedUser);
+          }
+          cityUser = createdUsers[0];
+        }
         console.log(`  ✓ Created ${city.name} City`);
 
         for (const thana of city.thanas) {
@@ -380,19 +545,28 @@ export class SeedDataService {
           });
           await this.roleRepo.save(thanaOfficerRole);
 
-          // Create Thana User with unique email (including hierarchy)
-          const thanaEmail = `thana-${city.name.toLowerCase().replace(/\s+/g, '-')}-${thana.name.toLowerCase().replace(/\s+/g, '-')}@bjioms.com`;
-          const thanaUser = this.userRepo.create({
-            email: thanaEmail,
-            password: await this.hashPassword('Thana@123'),
-            name: `${thana.name} Thana Officer`,
-            organization: thanaOrg,
-            role: thanaOfficerRole,
-            canCreateUsers: true,
-            createdBy: cityUser,
-          });
-          await this.userRepo.save(thanaUser);
-
+          // Create users for this thana and get thanaUser
+          let thanaUser: User | undefined = undefined;
+          {
+            // 5-12 secretaries (pick the first as thanaUser)
+            const numSecretaries = 5;
+            let createdUsers: User[] = [];
+            for (let i = 1; i <= numSecretaries; i++) {
+              const username = `${thanaOrg.name.toLowerCase().replace(/\s+/g, '_')}_secretary${i}`;
+              const user = this.userRepo.create({
+                email: `${username}@bjioms.com`,
+                password: await this.hashPassword(`${username}@bjioms.com`),
+                name: `${thanaOrg.name} Secretary ${i}`,
+                organization: thanaOrg,
+                role: thanaOfficerRole,
+                canCreateUsers: false,
+                createdBy: cityUser,
+              });
+              const savedUser = await this.userRepo.save(user);
+              createdUsers.push(savedUser);
+            }
+            thanaUser = createdUsers[0];
+          }
           console.log(`    ✓ Created ${thana.name} Thana`);
 
           for (const ward of thana.wards) {
@@ -420,19 +594,28 @@ export class SeedDataService {
             });
             await this.roleRepo.save(wardCoordinatorRole);
 
-            // Create Ward User with unique email
-            const wardEmail = `ward-${thana.name.toLowerCase().replace(/\s+/g, '-')}-${ward.wardNumber}@bjioms.com`;
-            const wardUser = this.userRepo.create({
-              email: wardEmail,
-              password: await this.hashPassword('Ward@123'),
-              name: `${thana.name} Ward ${ward.wardNumber} Coordinator`,
-              organization: wardOrg,
-              role: wardCoordinatorRole,
-              canCreateUsers: false,
-              createdBy: thanaUser,
-            });
-            await this.userRepo.save(wardUser);
-
+            // Create users for this ward and get wardUser
+            let wardUser: User | undefined = undefined;
+            {
+              // 3-6 direct ward members (pick the first as wardUser)
+              const numWardMembers = 3;
+              let createdUsers: User[] = [];
+              for (let i = 1; i <= numWardMembers; i++) {
+                const username = `${wardOrg.name.toLowerCase().replace(/\s+/g, '_')}_member${i}`;
+                const user = this.userRepo.create({
+                  email: `${username}@bjioms.com`,
+                  password: await this.hashPassword(`${username}@bjioms.com`),
+                  name: `${wardOrg.name} Member ${i}`,
+                  organization: wardOrg,
+                  role: wardCoordinatorRole,
+                  canCreateUsers: false,
+                  createdBy: thanaUser,
+                });
+                const savedUser = await this.userRepo.save(user);
+                createdUsers.push(savedUser);
+              }
+              wardUser = createdUsers[0];
+            }
             console.log(`      ✓ Created Ward ${ward.wardNumber}`);
 
             // Create Unit
@@ -460,20 +643,8 @@ export class SeedDataService {
             });
             await this.roleRepo.save(unitMemberRole);
 
-            // Create Unit User with unique email
-            const unitEmail = `unit-${ward.unitName.toLowerCase().replace(/\s+/g, '-')}@bjioms.com`;
-            const unitUser = this.userRepo.create({
-              email: unitEmail,
-              password: await this.hashPassword('Unit@123'),
-              name: `${ward.unitName} Member`,
-              organization: unitOrg,
-              role: unitMemberRole,
-              canCreateUsers: false,
-              createdBy: wardUser,
-            });
-            await this.userRepo.save(unitUser);
-
-            console.log(`        ✓ Created Unit: ${ward.unitName}`);
+            // Create users for this unit and get unitUser (not needed for hierarchy)
+            // ...existing code...
           }
         }
       }

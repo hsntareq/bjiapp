@@ -120,12 +120,31 @@ export class OrganizationService {
   /**
    * Get full hierarchy tree starting from root
    */
-  async getHierarchyTree(): Promise<Organization[]> {
-    // Get all central organizations (roots)
-    const roots = await this.orgRepository.find({
-      where: { type: OrganizationType.CENTRAL },
-      relations: ['children'],
-    });
+  async getHierarchyTree(userId?: number): Promise<Organization[]> {
+    let roots: Organization[] = [];
+
+    if (userId) {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (user && user.organizationId) {
+        roots = await this.orgRepository.find({
+          where: { id: user.organizationId },
+          relations: ['children'],
+        });
+      } else {
+        roots = await this.orgRepository.find({
+          where: { type: OrganizationType.CENTRAL },
+          relations: ['children'],
+        });
+      }
+    } else {
+      roots = await this.orgRepository.find({
+        where: { type: OrganizationType.CENTRAL },
+        relations: ['children'],
+      });
+    }
 
     // Recursively load all children
     for (const root of roots) {

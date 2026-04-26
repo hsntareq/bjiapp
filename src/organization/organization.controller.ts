@@ -11,6 +11,7 @@ import {
   Put,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../common/guards';
@@ -48,9 +49,13 @@ export class OrganizationController {
    * Get organizational hierarchy tree (all levels)
    * GET /organization/hierarchy/tree
    */
+  @UseGuards(AuthGuard('jwt'))
   @Get('hierarchy/tree')
-  async getHierarchyTree() {
-    return this.organizationService.getHierarchyTree();
+  async getHierarchyTree(@Request() req: any, @Query('global') global?: string) {
+    if (global === 'true') {
+      return this.organizationService.getHierarchyTree();
+    }
+    return this.organizationService.getHierarchyTree(req.user.userId);
   }
 
   /**

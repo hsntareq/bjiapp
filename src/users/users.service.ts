@@ -34,4 +34,14 @@ export class UsersService {
     const newUser = this.usersRepository.create(user);
     return this.usersRepository.save(newUser);
   }
+
+  async update(user: User): Promise<User> {
+    return this.usersRepository.save(user);
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find({
+      relations: ['role'],
+    });
+  }
 }
