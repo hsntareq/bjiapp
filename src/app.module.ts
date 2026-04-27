@@ -13,6 +13,8 @@ import { OrganizationModule } from './organization/organization.module';
 import { OrgPositionModule } from './org-position/org-position.module';
 import { PersonalReportModule } from './personal-report/personal-report.module';
 import { UsersModule } from './users/users.module';
+import { PlanningModule } from './planning/planning.module';
+import { ComprehensiveReportModule } from './comprehensive-report/comprehensive-report.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { UsersModule } from './users/users.module';
     MonthlyPlanModule,
     MonthlyReportModule,
     DashboardModule,
+    PlanningModule,
+    ComprehensiveReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
