@@ -43,7 +43,7 @@ export class ComprehensiveReportService {
     return this.reportRepository.save(newReport);
   }
 
-  async findOne(organizationId: number, year: number, month: number): Promise<ComprehensiveReport> {
+  async findOne(organizationId: number, year: number, month: number): Promise<ComprehensiveReport | null> {
     return this.reportRepository.findOne({
       where: { organizationId, year, month },
     });
