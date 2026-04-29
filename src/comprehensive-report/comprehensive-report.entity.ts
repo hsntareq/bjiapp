@@ -43,6 +43,9 @@ export class ComprehensiveReport {
   @Column({ type: 'jsonb', default: '{}' })
   publicRelations: Record<string, any>;
 
+  @Column({ type: 'jsonb', default: '{}' })
+  prCampaign: Record<string, any>;
+
   // Section 5: Departmental Info (বিভাগীয় তথ্য)
   @Column({ type: 'jsonb', default: '{}' })
   departmentalInfo: Record<string, any>;

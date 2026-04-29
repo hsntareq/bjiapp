@@ -30,7 +30,7 @@ import { ComprehensiveReportModule } from './comprehensive-report/comprehensive-
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: true,
         // Connection pooling to prevent query conflicts
         poolSize: 10,
         connectionLimit: 20,

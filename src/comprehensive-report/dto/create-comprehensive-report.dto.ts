@@ -26,6 +26,9 @@ export class CreateComprehensiveReportDto {
   publicRelations?: Record<string, any>;
 
   @IsObject() @IsOptional()
+  prCampaign?: Record<string, any>;
+
+  @IsObject() @IsOptional()
   departmentalInfo?: Record<string, any>;
 
   @IsObject() @IsOptional()
