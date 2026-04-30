@@ -54,6 +54,49 @@ export class ComprehensiveReport {
   @Column({ type: 'jsonb', default: '{}' })
   dawahPublication: Record<string, any>;
 
+  // Section: Programs (কর্মসূচি বাস্তবায়ন)
+  @Column({ type: 'jsonb', default: '{}' })
+  programs: Record<string, any>;
+
+  // Section: Manpower (জনশক্তি)
+  @Column({ type: 'jsonb', default: '{}' })
+  manpower: Record<string, any>;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  deptManpower: Record<string, any>;
+
+  // Section: Unit Stats (দাওয়াতী ও পারিবারিক ইউনিট)
+  @Column({ type: 'jsonb', default: '{}' })
+  unitStats: Record<string, any>;
+
+  // Section: Student Joining
+  @Column({ type: 'jsonb', default: '{}' })
+  studentJoining: Record<string, any>;
+
+  // Section: Safar
+  @Column({ type: 'jsonb', default: '{}' })
+  safar: Record<string, any>;
+
+  // Section: Donors
+  @Column({ type: 'jsonb', default: '{}' })
+  donors: Record<string, any>;
+
+  // Section: Org Meetings
+  @Column({ type: 'jsonb', default: '{}' })
+  orgMeetings: Record<string, any>;
+
+  // Section: Training
+  @Column({ type: 'jsonb', default: '{}' })
+  training: Record<string, any>;
+
+  // Section: Social Work
+  @Column({ type: 'jsonb', default: '{}' })
+  socialWork: Record<string, any>;
+
+  // Section: Political
+  @Column({ type: 'jsonb', default: '{}' })
+  political: Record<string, any>;
+
   // Section 7: Finance / Baitulmal (বাইতুলমাল)
   @Column({ type: 'jsonb', default: '{}' })
   finance: Record<string, any>;
@@ -61,6 +104,10 @@ export class ComprehensiveReport {
   // Section 8: Miscellaneous (বিবিধ)
   @Column({ type: 'jsonb', default: '{}' })
   miscellaneous: Record<string, any>;
+
+  // Section: Remarks
+  @Column({ type: 'jsonb', default: '{}' })
+  remarks: Record<string, any>;
 
   @CreateDateColumn()
   createdAt: Date;

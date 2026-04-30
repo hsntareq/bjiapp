@@ -35,8 +35,44 @@ export class CreateComprehensiveReportDto {
   dawahPublication?: Record<string, any>;
 
   @IsObject() @IsOptional()
+  programs?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  manpower?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  deptManpower?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  unitStats?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  studentJoining?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  safar?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  donors?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  orgMeetings?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  training?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  socialWork?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  political?: Record<string, any>;
+
+  @IsObject() @IsOptional()
   finance?: Record<string, any>;
 
   @IsObject() @IsOptional()
   miscellaneous?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  remarks?: Record<string, any>;
 }

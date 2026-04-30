@@ -36,6 +36,18 @@ export class ComprehensiveReportService {
         finance: { ...existing.finance, ...createDto.finance },
         miscellaneous: { ...existing.miscellaneous, ...createDto.miscellaneous },
         prCampaign: { ...existing.prCampaign, ...createDto.prCampaign },
+        programs: { ...existing.programs, ...createDto.programs },
+        manpower: { ...existing.manpower, ...createDto.manpower },
+        deptManpower: { ...existing.deptManpower, ...createDto.deptManpower },
+        unitStats: { ...existing.unitStats, ...createDto.unitStats },
+        studentJoining: { ...existing.studentJoining, ...createDto.studentJoining },
+        safar: { ...existing.safar, ...createDto.safar },
+        donors: { ...existing.donors, ...createDto.donors },
+        orgMeetings: { ...existing.orgMeetings, ...createDto.orgMeetings },
+        training: { ...existing.training, ...createDto.training },
+        socialWork: { ...existing.socialWork, ...createDto.socialWork },
+        political: { ...existing.political, ...createDto.political },
+        remarks: { ...existing.remarks, ...createDto.remarks },
       };
       return this.reportRepository.save(updated);
     }
@@ -69,6 +81,18 @@ export class ComprehensiveReportService {
       finance: { ...existing.finance, ...updateDto.finance },
       miscellaneous: { ...existing.miscellaneous, ...updateDto.miscellaneous },
       prCampaign: { ...existing.prCampaign, ...updateDto.prCampaign },
+      programs: { ...existing.programs, ...updateDto.programs },
+      manpower: { ...existing.manpower, ...updateDto.manpower },
+      deptManpower: { ...existing.deptManpower, ...updateDto.deptManpower },
+      unitStats: { ...existing.unitStats, ...updateDto.unitStats },
+      studentJoining: { ...existing.studentJoining, ...updateDto.studentJoining },
+      safar: { ...existing.safar, ...updateDto.safar },
+      donors: { ...existing.donors, ...updateDto.donors },
+      orgMeetings: { ...existing.orgMeetings, ...updateDto.orgMeetings },
+      training: { ...existing.training, ...updateDto.training },
+      socialWork: { ...existing.socialWork, ...updateDto.socialWork },
+      political: { ...existing.political, ...updateDto.political },
+      remarks: { ...existing.remarks, ...updateDto.remarks },
     };
     
     return this.reportRepository.save(updated);
