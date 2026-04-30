@@ -75,4 +75,13 @@ export class CreateComprehensiveReportDto {
 
   @IsObject() @IsOptional()
   remarks?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  baitulmal?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  organizationData?: Record<string, any>;
+
+  @IsObject() @IsOptional()
+  dawah?: Record<string, any>;
 }

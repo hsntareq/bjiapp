@@ -47,6 +47,9 @@ export class ComprehensiveReportService {
         training: { ...existing.training, ...createDto.training },
         socialWork: { ...existing.socialWork, ...createDto.socialWork },
         political: { ...existing.political, ...createDto.political },
+        baitulmal: { ...existing.baitulmal, ...createDto.baitulmal },
+        organizationData: { ...existing.organizationData, ...createDto.organizationData },
+        dawah: { ...existing.dawah, ...createDto.dawah },
         remarks: { ...existing.remarks, ...createDto.remarks },
       };
       return this.reportRepository.save(updated);
@@ -92,6 +95,9 @@ export class ComprehensiveReportService {
       training: { ...existing.training, ...updateDto.training },
       socialWork: { ...existing.socialWork, ...updateDto.socialWork },
       political: { ...existing.political, ...updateDto.political },
+      baitulmal: { ...existing.baitulmal, ...updateDto.baitulmal },
+      organizationData: { ...existing.organizationData, ...updateDto.organizationData },
+      dawah: { ...existing.dawah, ...updateDto.dawah },
       remarks: { ...existing.remarks, ...updateDto.remarks },
     };
     

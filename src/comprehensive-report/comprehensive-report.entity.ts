@@ -101,6 +101,15 @@ export class ComprehensiveReport {
   @Column({ type: 'jsonb', default: '{}' })
   finance: Record<string, any>;
 
+  @Column({ type: 'jsonb', default: '{}' })
+  baitulmal: Record<string, any>;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  organizationData: Record<string, any>;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  dawah: Record<string, any>;
+
   // Section 8: Miscellaneous (বিবিধ)
   @Column({ type: 'jsonb', default: '{}' })
   miscellaneous: Record<string, any>;
