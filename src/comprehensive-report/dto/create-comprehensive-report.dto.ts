@@ -84,4 +84,6 @@ export class CreateComprehensiveReportDto {
 
   @IsObject() @IsOptional()
   dawah?: Record<string, any>;
+  @IsObject() @IsOptional()
+  unitOrganization?: Record<string, any>;
 }

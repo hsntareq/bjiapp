@@ -118,6 +118,9 @@ export class ComprehensiveReport {
   @Column({ type: 'jsonb', default: '{}' })
   remarks: Record<string, any>;
 
+  @Column({ type: 'jsonb', default: '{}' })
+  unitOrganization: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 
