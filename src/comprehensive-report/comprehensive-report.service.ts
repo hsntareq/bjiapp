@@ -35,6 +35,7 @@ export class ComprehensiveReportService {
         dawahPublication: { ...existing.dawahPublication, ...createDto.dawahPublication },
         finance: { ...existing.finance, ...createDto.finance },
         miscellaneous: { ...existing.miscellaneous, ...createDto.miscellaneous },
+        prCampaign: { ...existing.prCampaign, ...createDto.prCampaign },
       };
       return this.reportRepository.save(updated);
     }
@@ -67,6 +68,7 @@ export class ComprehensiveReportService {
       dawahPublication: { ...existing.dawahPublication, ...updateDto.dawahPublication },
       finance: { ...existing.finance, ...updateDto.finance },
       miscellaneous: { ...existing.miscellaneous, ...updateDto.miscellaneous },
+      prCampaign: { ...existing.prCampaign, ...updateDto.prCampaign },
     };
     
     return this.reportRepository.save(updated);
