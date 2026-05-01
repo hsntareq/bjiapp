@@ -21,12 +21,11 @@ export class MonthlyPlanController {
     private readonly usersService: UsersService,
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
-  async getPlan(@Req() req: any, @Query('month') month: string, @Query('userId') userId?: string) {
-    // Get userId from param or authenticated user
-    const resolvedUserId = userId || req.user?.userId;
-    if (!resolvedUserId) throw new UnauthorizedException('userId required');
-    const user = await this.usersService.findById(parseInt(resolvedUserId));
+  async getPlan(@Req() req: any, @Query('month') month: string) {
+    if (!req.user) throw new UnauthorizedException();
+    const user = await this.usersService.findById(req.user.userId);
     if (!user) throw new UnauthorizedException();
     return this.service.getByMonth(user, month);
   }
