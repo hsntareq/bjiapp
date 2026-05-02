@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -15,5 +16,23 @@ export class UsersController {
       email: user.email,
       responsibility: user.role ? user.role.name : null,
     }));
+  }
+
+  @Get('by-organization')
+  @UseGuards(AuthGuard('jwt'))
+  async findByOrganization(
+    @Query('orgId') orgId: string,
+    @Query('level') level: string,
+    @Req() req: Request,
+  ) {
+    const userId = (req as any).user?.userId;
+    const userOrgId = (req as any).user?.organizationId;
+
+    return this.usersService.getUsersWithOrgHierarchy(
+      parseInt(orgId),
+      level,
+      userId,
+      userOrgId,
+    );
   }
 }

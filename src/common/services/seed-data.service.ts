@@ -178,21 +178,25 @@ export class SeedDataService {
 
     // Helper to create users for a unit
     const createUnitUsers = async (unitOrg, unitMemberRole, wardUser) => {
-      const numPeople = randInt(5, 10);
-      // 1 member
-      const memberUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_member`;
-      const member = this.userRepo.create({
-        email: `${memberUsername}@bjioms.com`,
-        password: await this.hashPassword(`${memberUsername}@bjioms.com`),
-        name: `${unitOrg.name} Member`,
-        organization: unitOrg,
-        role: unitMemberRole,
-        canCreateUsers: false,
-        createdBy: wardUser,
-      });
-      await this.userRepo.save(member);
-      // Activists
-      for (let i = 1; i < numPeople; i++) {
+      // 1-2 Members (core leadership)
+      const numMembers = randInt(1, 2);
+      for (let i = 1; i <= numMembers; i++) {
+        const memberUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_member${i}`;
+        const member = this.userRepo.create({
+          email: `${memberUsername}@bjioms.com`,
+          password: await this.hashPassword(`${memberUsername}@bjioms.com`),
+          name: `${unitOrg.name} Member ${i}`,
+          organization: unitOrg,
+          role: unitMemberRole,
+          canCreateUsers: false,
+          createdBy: wardUser,
+        });
+        await this.userRepo.save(member);
+      }
+
+      // 6-10 Activists (engaged volunteers)
+      const numActivists = randInt(6, 10);
+      for (let i = 1; i <= numActivists; i++) {
         const activistUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_activist${i}`;
         const activist = this.userRepo.create({
           email: `${activistUsername}@bjioms.com`,
@@ -205,14 +209,15 @@ export class SeedDataService {
         });
         await this.userRepo.save(activist);
       }
-      // Associates (more than 10)
-      const numAssociates = randInt(11, 18);
+
+      // 10-20 Association users (general members)
+      const numAssociates = randInt(10, 20);
       for (let i = 1; i <= numAssociates; i++) {
-        const associateUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_associate${i}`;
+        const associateUsername = `${unitOrg.name.toLowerCase().replace(/\s+/g, '_')}_assoc${i}`;
         const associate = this.userRepo.create({
           email: `${associateUsername}@bjioms.com`,
           password: await this.hashPassword(`${associateUsername}@bjioms.com`),
-          name: `${unitOrg.name} Associate ${i}`,
+          name: `${unitOrg.name} Association ${i}`,
           organization: unitOrg,
           role: unitMemberRole,
           canCreateUsers: false,
@@ -618,33 +623,36 @@ export class SeedDataService {
             }
             console.log(`      ✓ Created Ward ${ward.wardNumber}`);
 
-            // Create Unit
-            const unitOrg = this.organizationRepo.create({
-              name: ward.unitName,
-              type: 'UNIT',
-              division: division.name,
-              city: city.name,
-              thana: thana.name,
-              wardNumber: ward.wardNumber,
-              parent: wardOrg,
-            });
-            await this.organizationRepo.save(unitOrg);
+            // Create 5 Units per ward
+            for (let u = 1; u <= 5; u++) {
+              const unitName = `${ward.unitName} #${u}`;
+              const unitOrg = this.organizationRepo.create({
+                name: unitName,
+                type: 'UNIT',
+                division: division.name,
+                city: city.name,
+                thana: thana.name,
+                wardNumber: ward.wardNumber,
+                parent: wardOrg,
+              });
+              await this.organizationRepo.save(unitOrg);
 
-            // Create Unit Member Role
-            const unitMemberRole = this.roleRepo.create({
-              name: `Unit Member - ${ward.unitName}`,
-              description: `Member in ${ward.unitName}`,
-              organization: unitOrg,
-              permissions: permissions.filter(
-                (p) =>
-                  ['activities', 'reports'].includes(p.resource) &&
-                  ['read', 'create'].includes(p.action),
-              ),
-            });
-            await this.roleRepo.save(unitMemberRole);
+              // Create Unit Member Role
+              const unitMemberRole = this.roleRepo.create({
+                name: `Unit Member - ${unitName}`,
+                description: `Member in ${unitName}`,
+                organization: unitOrg,
+                permissions: permissions.filter(
+                  (p) =>
+                    ['activities', 'reports'].includes(p.resource) &&
+                    ['read', 'create'].includes(p.action),
+                ),
+              });
+              await this.roleRepo.save(unitMemberRole);
 
-            // Create users for this unit and get unitUser (not needed for hierarchy)
-            // ...existing code...
+              // Create users for this unit
+              await createUnitUsers(unitOrg, unitMemberRole, wardUser);
+            }
           }
         }
       }
