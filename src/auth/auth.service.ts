@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { Organization, OrgPosition } from '../common/entities';
 import { User } from '../users/user.entity';
 
 @Injectable()
@@ -10,6 +11,10 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Organization)
+    private orgRepository: Repository<Organization>,
+    @InjectRepository(OrgPosition)
+    private orgPositionRepository: Repository<OrgPosition>,
     private jwtService: JwtService,
   ) {}
 
@@ -98,6 +103,54 @@ export class AuthService {
     };
     return {
       access_token: this.jwtService.sign(payload),
+    };
+  }
+
+  async getMe(userId: number, organizationId: number): Promise<{
+    userId: number;
+    organizationId: number | null;
+    orgType: string | null;
+    orgName: string | null;
+    parentOrgId: number | null;
+    parentOrgType: string | null;
+    positionTitle: string | null;
+  }> {
+    let orgType: string | null = null;
+    let orgName: string | null = null;
+    let parentOrgId: number | null = null;
+    let parentOrgType: string | null = null;
+    let positionTitle: string | null = null;
+
+    if (organizationId) {
+      const org = await this.orgRepository.findOne({
+        where: { id: organizationId },
+        relations: ['parent'],
+      });
+      if (org) {
+        orgType = org.type;
+        orgName = org.name;
+        if (org.parent) {
+          parentOrgId = org.parent.id;
+          parentOrgType = org.parent.type;
+        }
+      }
+
+      const position = await this.orgPositionRepository.findOne({
+        where: { userId: userId as any, organizationId },
+      });
+      if (position) {
+        positionTitle = position.positionTitle;
+      }
+    }
+
+    return {
+      userId,
+      organizationId: organizationId ?? null,
+      orgType,
+      orgName,
+      parentOrgId,
+      parentOrgType,
+      positionTitle,
     };
   }
 }

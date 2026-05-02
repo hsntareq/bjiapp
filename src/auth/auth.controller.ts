@@ -64,4 +64,11 @@ export class AuthController {
       `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard?token=${token.access_token}`,
     );
   }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  async getMe(@Req() req: Request): Promise<unknown> {
+    const user = (req as any).user;
+    return this.authService.getMe(user.userId, user.organizationId);
+  }
 }
