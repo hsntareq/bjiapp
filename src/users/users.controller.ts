@@ -15,6 +15,7 @@ export class UsersController {
       fullname: user.name,
       email: user.email,
       responsibility: user.role ? user.role.name : null,
+      rank: (user as any).rank || null,
     }));
   }
 
