@@ -54,6 +54,9 @@ export class User {
   @Column({ name: 'is_adv', default: false })
   isAdv: boolean;
 
+  @Column({ nullable: true })
+  bloodGroup: string;
+
   @ManyToOne(() => User, (user) => user.createdUsers, {
     nullable: true,
     onDelete: 'SET NULL',
