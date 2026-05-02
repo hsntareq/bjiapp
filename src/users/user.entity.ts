@@ -46,9 +46,13 @@ export class User {
   @Column({ default: false })
   canCreateUsers: boolean;
 
-  // Rank within the organization (member, activist, associate, adv-activist, adv-associate)
+  // Base rank: member | activist | associate
   @Column({ nullable: true, default: 'member' })
   rank: string;
+
+  // Advanced tag: marks an activist or associate as advanced (adv-activist / adv-associate)
+  @Column({ name: 'is_adv', default: false })
+  isAdv: boolean;
 
   @ManyToOne(() => User, (user) => user.createdUsers, {
     nullable: true,

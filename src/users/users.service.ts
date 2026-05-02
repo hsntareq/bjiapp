@@ -54,8 +54,8 @@ export class UsersService {
     userId?: number,
     userOrgId?: number,
   ): Promise<{
-    currentOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; rank: string | null }>;
-    childOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; childOrgName?: string; rank: string | null }>;
+    currentOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; rank: string | null; isAdv: boolean }>;
+    childOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; childOrgName?: string; rank: string | null; isAdv: boolean }>;
   }> {
     // Get the organization
     const org = await this.orgRepository.findOne({
@@ -124,6 +124,7 @@ export class UsersService {
       responsibility: user.role?.name || null,
       organization: user.organization?.name || 'Unknown',
       rank: (user as any).rank || null,
+      isAdv: (user as any).isAdv ?? false,
       ...(childOrgName && { childOrgName }),
     });
 

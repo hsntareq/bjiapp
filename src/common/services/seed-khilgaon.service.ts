@@ -5,7 +5,6 @@ import { Repository } from 'typeorm';
 import { Organization, OrgPosition, Role } from '../entities';
 import { User } from '../../users/user.entity';
 
-// Random first and last names for realistic data
 const FIRST_NAMES = [
   'Abu Bakr', 'Umar', 'Uthman', 'Ali', 'Khalid', 'Bilal', 'Salman', 'Abdullah',
   'Ibrahim', 'Ismail', 'Yusuf', 'Dawud', 'Sulaiman', 'Musa', 'Harun', 'Isa',
@@ -53,10 +52,16 @@ export class SeedKhilgaonService {
     org: any;
     role: any;
     rank: string;
+    isAdv?: boolean;
     canCreateUsers?: boolean;
   }): Promise<User> {
     const existing = await this.userRepo.findOne({ where: { email: params.email } });
-    if (existing) return existing;
+    if (existing) {
+      // Update rank + isAdv in case seed is re-run
+      (existing as any).rank = params.rank;
+      (existing as any).isAdv = params.isAdv ?? false;
+      return this.userRepo.save(existing);
+    }
     const user = this.userRepo.create({
       email: params.email,
       password: await this.hash(params.email),
@@ -64,12 +69,17 @@ export class SeedKhilgaonService {
       organization: params.org,
       role: params.role,
       rank: params.rank,
+      isAdv: params.isAdv ?? false,
       canCreateUsers: params.canCreateUsers ?? false,
-    });
+    } as any);
     return this.userRepo.save(user);
   }
 
-  private async createPosition(org: Organization, user: User, positionTitle: string, group: string): Promise<OrgPosition> {
+  private async createPosition(org: Organization, user: User, positionTitle: string, group: string): Promise<void> {
+    const existing = await this.positionRepo.findOne({
+      where: { organizationId: org.id, userId: user.id } as any,
+    });
+    if (existing) return;
     const pos = this.positionRepo.create({
       organizationId: org.id,
       userId: user.id,
@@ -77,7 +87,7 @@ export class SeedKhilgaonService {
       positionGroup: group,
       isActive: true,
     } as any);
-    return this.positionRepo.save(pos as any);
+    await this.positionRepo.save(pos as any);
   }
 
   private async getOrCreateRole(name: string, org: Organization): Promise<Role> {
@@ -89,13 +99,27 @@ export class SeedKhilgaonService {
     return role;
   }
 
+  /** Migrate legacy adv-* ranks to base rank + isAdv=true */
+  private async migrateAdvRanks(): Promise<void> {
+    await this.userRepo.query(
+      `UPDATE users SET rank = 'associate', is_adv = true WHERE rank = 'adv-associate'`,
+    );
+    await this.userRepo.query(
+      `UPDATE users SET rank = 'activist', is_adv = true WHERE rank = 'adv-activist'`,
+    );
+    console.log('  ✓ Migrated adv-associate → associate+isAdv and adv-activist → activist+isAdv');
+  }
+
   async seed() {
+    nameIdx = 0;
     console.log('🌱 Seeding Khilgaon North hierarchy...\n');
 
-    // ── Find or create Thana ──────────────────────────────────────────────────
+    // Migrate any legacy adv-* ranks first
+    await this.migrateAdvRanks();
+
+    // ── Thana: Khilgaon North ─────────────────────────────────────────────────
     let thanaOrg = await this.orgRepo.findOne({ where: { name: 'Khilgaon North' } });
     if (!thanaOrg) {
-      // Find a city parent (Dhaka) or any CITY level org
       const parent = await this.orgRepo.findOne({ where: { type: 'CITY' } });
       thanaOrg = this.orgRepo.create({
         name: 'Khilgaon North',
@@ -111,21 +135,20 @@ export class SeedKhilgaonService {
 
     const thanaRole = await this.getOrCreateRole('Thana Executive - Khilgaon North', thanaOrg);
 
-    const thanaPositions: { slug: string; title: string; rank: string; group: string; canCreate: boolean }[] = [
-      { slug: 'president',    title: 'President',       rank: 'member',   group: 'EXECUTIVE', canCreate: true  },
-      { slug: 'secretary',    title: 'Secretary',       rank: 'member',   group: 'EXECUTIVE', canCreate: true  },
-      { slug: 'office',       title: 'Office Secretary',rank: 'member',   group: 'EXECUTIVE', canCreate: false },
-      { slug: 'baitulmal',    title: 'Baitulmal',       rank: 'member',   group: 'EXECUTIVE', canCreate: false },
-      { slug: 'shangothonik', title: 'Shangothonik',    rank: 'activist', group: 'EXECUTIVE', canCreate: false },
-      { slug: 'member1',      title: 'Member',          rank: 'activist', group: 'EXECUTIVE', canCreate: false },
+    // Thana: 4 positional users (president, secretary, office secretary, baitulmal)
+    const thanaPositions: { slug: string; title: string; rank: string; canCreate: boolean }[] = [
+      { slug: 'president',    title: 'President',        rank: 'member', canCreate: true  },
+      { slug: 'secretary',    title: 'Secretary',        rank: 'member', canCreate: true  },
+      { slug: 'office',       title: 'Office Secretary', rank: 'member', canCreate: false },
+      { slug: 'baitulmal',    title: 'Baitulmal',        rank: 'member', canCreate: false },
     ];
 
     console.log('  Creating Thana users...');
     for (const p of thanaPositions) {
       const email = `thana-khilgaon-${p.slug}@bjioms.com`;
-      const name = p.slug.startsWith('member') ? nextName() : this.titleToName(p.title) + ' (Khilgaon)';
+      const name = this.titleToName(p.title, 'Khilgaon');
       const user = await this.createUser({ email, name, org: thanaOrg, role: thanaRole, rank: p.rank, canCreateUsers: p.canCreate });
-      await this.createPosition(thanaOrg, user, p.title, p.group);
+      await this.createPosition(thanaOrg, user, p.title, 'EXECUTIVE');
       console.log(`    ✓ ${p.title}: ${email}`);
     }
 
@@ -147,23 +170,20 @@ export class SeedKhilgaonService {
 
     const wardRole = await this.getOrCreateRole('Ward Executive - Jubo Ward', wardOrg);
 
+    // Ward: 4 positional users (president, secretary, office secretary, baitulmal)
     const wardPositions = [
-      { slug: 'president',    title: 'President',       rank: 'member',   group: 'EXECUTIVE', canCreate: true  },
-      { slug: 'secretary',    title: 'Secretary',       rank: 'member',   group: 'EXECUTIVE', canCreate: true  },
-      { slug: 'office',       title: 'Office Secretary',rank: 'member',   group: 'EXECUTIVE', canCreate: false },
-      { slug: 'baitulmal',    title: 'Baitulmal',       rank: 'member',   group: 'EXECUTIVE', canCreate: false },
-      { slug: 'shangothonik', title: 'Shangothonik',    rank: 'activist', group: 'EXECUTIVE', canCreate: false },
-      { slug: 'member1',      title: 'Member',          rank: 'activist', group: 'EXECUTIVE', canCreate: false },
+      { slug: 'president',    title: 'President',        rank: 'member', canCreate: true  },
+      { slug: 'secretary',    title: 'Secretary',        rank: 'member', canCreate: true  },
+      { slug: 'office',       title: 'Office Secretary', rank: 'member', canCreate: false },
+      { slug: 'baitulmal',    title: 'Baitulmal',        rank: 'member', canCreate: false },
     ];
 
-    let wardUser: User | null = null;
     console.log('  Creating Ward users...');
     for (const p of wardPositions) {
       const email = `ward-jubo-${p.slug}@bjioms.com`;
-      const name = p.slug.startsWith('member') ? nextName() : this.titleToName(p.title) + ' (Jubo Ward)';
+      const name = this.titleToName(p.title, 'Jubo Ward');
       const user = await this.createUser({ email, name, org: wardOrg, role: wardRole, rank: p.rank, canCreateUsers: p.canCreate });
-      await this.createPosition(wardOrg, user, p.title, p.group);
-      if (p.slug === 'president') wardUser = user;
+      await this.createPosition(wardOrg, user, p.title, 'EXECUTIVE');
       console.log(`    ✓ ${p.title}: ${email}`);
     }
 
@@ -194,7 +214,7 @@ export class SeedKhilgaonService {
 
       const unitRole = await this.getOrCreateRole(`Unit Member - ${unitDef.name}`, unitOrg);
 
-      // President → rank: member
+      // President → rank: member, assigned President position
       const presidentEmail = `unit-${unitDef.slug}-president@bjioms.com`;
       const president = await this.createUser({
         email: presidentEmail,
@@ -206,7 +226,7 @@ export class SeedKhilgaonService {
       });
       await this.createPosition(unitOrg, president, 'President', 'EXECUTIVE');
 
-      // Secretary → rank: activist (nominated)
+      // Secretary → rank: activist, assigned Secretary position
       const secretaryEmail = `unit-${unitDef.slug}-secretary@bjioms.com`;
       const secretary = await this.createUser({
         email: secretaryEmail,
@@ -218,39 +238,39 @@ export class SeedKhilgaonService {
       });
       await this.createPosition(unitOrg, secretary, 'Secretary', 'EXECUTIVE');
 
-      // Additional activist members (total activists = 6-10, president is the 1 member, secretary is activist)
-      const numActivists = randInt(4, 8); // more activists (secretary already counted)
+      // Additional activists (no formal position, just rank)
+      const numActivists = randInt(4, 8);
       for (let i = 1; i <= numActivists; i++) {
         const email = `unit-${unitDef.slug}-activist${i}@bjioms.com`;
         await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'activist' });
       }
 
-      // Associates (15-20 total, 5 = adv-associate, rest = associate)
+      // Associates: first 5 are adv-associate (associate + isAdv=true), rest are plain associate
       const numAssociates = randInt(15, 20);
       for (let i = 1; i <= numAssociates; i++) {
-        const rank = i <= 5 ? 'adv-associate' : 'associate';
+        const isAdv = i <= 5;
         const email = `unit-${unitDef.slug}-assoc${i}@bjioms.com`;
-        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank });
+        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'associate', isAdv });
       }
 
-      console.log(`    ✓ Unit ${unitDef.name}: 1 member, ${numActivists + 1} activists, ${numAssociates} associates (5 adv)`);
+      console.log(`    ✓ Unit ${unitDef.name}: 1 member (president), ${numActivists + 1} activists, ${numAssociates} associates (5 adv)`);
     }
 
     console.log('\n✅ Khilgaon seed completed!');
     console.log('\n📝 Key credentials:');
-    console.log('  Thana President: thana-khilgaon-president@bjioms.com');
-    console.log('  Ward Secretary:  ward-jubo-secretary@bjioms.com');
-    console.log('  Unit Ansarbag:   unit-ansarbag-president@bjioms.com');
+    console.log('  Thana President:  thana-khilgaon-president@bjioms.com');
+    console.log('  Thana Secretary:  thana-khilgaon-secretary@bjioms.com');
+    console.log('  Ward Secretary:   ward-jubo-secretary@bjioms.com');
+    console.log('  Unit Ansarbag:    unit-ansarbag-president@bjioms.com');
   }
 
-  private titleToName(title: string): string {
+  private titleToName(title: string, orgName: string): string {
     const map: Record<string, string> = {
-      President: 'Mohammad Fahim',
-      Secretary: 'Abdul Wahab',
+      President:        'Mohammad Fahim',
+      Secretary:        'Abdul Wahab',
       'Office Secretary': 'Shuaib Noman',
-      Baitulmal: 'Tawfiq Hasan',
-      Shangothonik: 'Rafiqul Islam',
+      Baitulmal:        'Tawfiq Hasan',
     };
-    return map[title] ?? title;
+    return `${map[title] ?? title} (${orgName})`;
   }
 }
