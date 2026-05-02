@@ -42,10 +42,20 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find({
-      relations: ['role'],
-    });
+  async findAll(search?: string): Promise<User[]> {
+    const qb = this.usersRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .leftJoinAndSelect('user.organization', 'organization');
+
+    if (search) {
+      const q = `%${search.toLowerCase()}%`;
+      qb.where(
+        'LOWER(user.name) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(organization.name) LIKE :q OR LOWER(role.name) LIKE :q',
+        { q },
+      );
+    }
+
+    return qb.orderBy('organization.name').addOrderBy('user.name').getMany();
   }
 
   async getUsersWithOrgHierarchy(

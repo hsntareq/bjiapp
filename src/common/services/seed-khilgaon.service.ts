@@ -110,12 +110,20 @@ export class SeedKhilgaonService {
     console.log('  ✓ Migrated adv-associate → associate+isAdv and adv-activist → activist+isAdv');
   }
 
+  /** Rename old unit names that conflict with new ward names */
+  private async migrateOrgNames(): Promise<void> {
+    await this.orgRepo.query(
+      `UPDATE organizations SET name = 'Jubo Banasree North' WHERE name = 'Banasree North' AND type = 'UNIT'`,
+    );
+    console.log('  ✓ Renamed conflicting unit names');
+  }
+
   async seed() {
     nameIdx = 0;
     console.log('🌱 Seeding Khilgaon North hierarchy...\n');
 
-    // Migrate any legacy adv-* ranks first
     await this.migrateAdvRanks();
+    await this.migrateOrgNames();
 
     // ── Thana: Khilgaon North ─────────────────────────────────────────────────
     let thanaOrg = await this.orgRepo.findOne({ where: { name: 'Khilgaon North' } });
@@ -152,109 +160,59 @@ export class SeedKhilgaonService {
       console.log(`    ✓ ${p.title}: ${email}`);
     }
 
-    // ── Ward: Jubo Ward ───────────────────────────────────────────────────────
-    let wardOrg = await this.orgRepo.findOne({ where: { name: 'Jubo Ward' } });
-    if (!wardOrg) {
-      wardOrg = this.orgRepo.create({
-        name: 'Jubo Ward',
-        type: 'WARD',
-        division: 'Dhaka',
-        city: 'Dhaka',
-        thana: 'Khilgaon',
-        wardNumber: 1,
-        parent: thanaOrg,
-      } as any);
-      wardOrg = await this.orgRepo.save(wardOrg);
-      console.log('  ✓ Created Ward: Jubo Ward');
-    }
+    // ── Jubo Ward ─────────────────────────────────────────────────────────────
+    await this.seedWard({
+      wardName:  'Jubo Ward',
+      wardSlug:  'jubo',
+      wardNumber: 1,
+      thanaOrg,
+      units: [
+        { slug: 'ansarbag',       name: 'Ansarbag' },
+        { slug: '3-west',         name: '3 West' },
+        { slug: 'jubo-banasree',  name: 'Jubo Banasree North' },
+        { slug: '3-mid',          name: '3 Mid' },
+        { slug: 'protik-jubo',    name: 'Protik Jubo' },
+      ],
+    });
 
-    const wardRole = await this.getOrCreateRole('Ward Executive - Jubo Ward', wardOrg);
+    // ── 3 East Ward ────────────────────────────────────────────────────────────
+    await this.seedWard({
+      wardName:  '3 East',
+      wardSlug:  '3-east',
+      wardNumber: 2,
+      thanaOrg,
+      units: [
+        { slug: '3east-a', name: 'Merul Badda' },
+        { slug: '3east-b', name: 'Rayer Bag' },
+        { slug: '3east-c', name: 'Khilgaon Colony' },
+      ],
+    });
 
-    // Ward: 4 positional users (president, secretary, office secretary, baitulmal)
-    const wardPositions = [
-      { slug: 'president',    title: 'President',        rank: 'member', canCreate: true  },
-      { slug: 'secretary',    title: 'Secretary',        rank: 'member', canCreate: true  },
-      { slug: 'office',       title: 'Office Secretary', rank: 'member', canCreate: false },
-      { slug: 'baitulmal',    title: 'Baitulmal',        rank: 'member', canCreate: false },
-    ];
+    // ── Banasree North Ward ────────────────────────────────────────────────────
+    await this.seedWard({
+      wardName:  'Banasree North',
+      wardSlug:  'banasree-north',
+      wardNumber: 3,
+      thanaOrg,
+      units: [
+        { slug: 'bn-a', name: 'Banasree Block A' },
+        { slug: 'bn-b', name: 'Banasree Block B' },
+        { slug: 'bn-c', name: 'Banasree Block C' },
+      ],
+    });
 
-    console.log('  Creating Ward users...');
-    for (const p of wardPositions) {
-      const email = `ward-jubo-${p.slug}@bjioms.com`;
-      const name = this.titleToName(p.title, 'Jubo Ward');
-      const user = await this.createUser({ email, name, org: wardOrg, role: wardRole, rank: p.rank, canCreateUsers: p.canCreate });
-      await this.createPosition(wardOrg, user, p.title, 'EXECUTIVE');
-      console.log(`    ✓ ${p.title}: ${email}`);
-    }
-
-    // ── Units ─────────────────────────────────────────────────────────────────
-    const units = [
-      { slug: 'ansarbag',       name: 'Ansarbag' },
-      { slug: '3-west',         name: '3 West' },
-      { slug: 'banasree-north', name: 'Banasree North' },
-      { slug: '3-mid',          name: '3 Mid' },
-      { slug: 'protik-jubo',    name: 'Protik Jubo' },
-    ];
-
-    for (const unitDef of units) {
-      let unitOrg = await this.orgRepo.findOne({ where: { name: unitDef.name } });
-      if (!unitOrg) {
-        unitOrg = this.orgRepo.create({
-          name: unitDef.name,
-          type: 'UNIT',
-          division: 'Dhaka',
-          city: 'Dhaka',
-          thana: 'Khilgaon',
-          wardNumber: 1,
-          parent: wardOrg,
-        } as any);
-        unitOrg = await this.orgRepo.save(unitOrg);
-        console.log(`  ✓ Created Unit: ${unitDef.name}`);
-      }
-
-      const unitRole = await this.getOrCreateRole(`Unit Member - ${unitDef.name}`, unitOrg);
-
-      // President → rank: member, assigned President position
-      const presidentEmail = `unit-${unitDef.slug}-president@bjioms.com`;
-      const president = await this.createUser({
-        email: presidentEmail,
-        name: `${unitDef.name} President`,
-        org: unitOrg,
-        role: unitRole,
-        rank: 'member',
-        canCreateUsers: false,
-      });
-      await this.createPosition(unitOrg, president, 'President', 'EXECUTIVE');
-
-      // Secretary → rank: activist, assigned Secretary position
-      const secretaryEmail = `unit-${unitDef.slug}-secretary@bjioms.com`;
-      const secretary = await this.createUser({
-        email: secretaryEmail,
-        name: `${unitDef.name} Secretary`,
-        org: unitOrg,
-        role: unitRole,
-        rank: 'activist',
-        canCreateUsers: false,
-      });
-      await this.createPosition(unitOrg, secretary, 'Secretary', 'EXECUTIVE');
-
-      // Additional activists (no formal position, just rank)
-      const numActivists = randInt(4, 8);
-      for (let i = 1; i <= numActivists; i++) {
-        const email = `unit-${unitDef.slug}-activist${i}@bjioms.com`;
-        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'activist' });
-      }
-
-      // Associates: first 5 are adv-associate (associate + isAdv=true), rest are plain associate
-      const numAssociates = randInt(15, 20);
-      for (let i = 1; i <= numAssociates; i++) {
-        const isAdv = i <= 5;
-        const email = `unit-${unitDef.slug}-assoc${i}@bjioms.com`;
-        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'associate', isAdv });
-      }
-
-      console.log(`    ✓ Unit ${unitDef.name}: 1 member (president), ${numActivists + 1} activists, ${numAssociates} associates (5 adv)`);
-    }
+    // ── Goran Ward ─────────────────────────────────────────────────────────────
+    await this.seedWard({
+      wardName:  'Goran',
+      wardSlug:  'goran',
+      wardNumber: 4,
+      thanaOrg,
+      units: [
+        { slug: 'goran-north', name: 'Goran North' },
+        { slug: 'goran-south', name: 'Goran South' },
+        { slug: 'tikkatuli',   name: 'Tikkatuli' },
+      ],
+    });
 
     console.log('\n✅ Khilgaon seed completed!');
     console.log('\n📝 Key credentials:');
@@ -264,12 +222,110 @@ export class SeedKhilgaonService {
     console.log('  Unit Ansarbag:    unit-ansarbag-president@bjioms.com');
   }
 
+  private async seedWard(params: {
+    wardName: string;
+    wardSlug: string;
+    wardNumber: number;
+    thanaOrg: Organization;
+    units: { slug: string; name: string }[];
+  }): Promise<void> {
+    const { wardName, wardSlug, wardNumber, thanaOrg, units } = params;
+
+    let wardOrg = await this.orgRepo.findOne({ where: { name: wardName, type: 'WARD' } as any });
+    if (!wardOrg) {
+      wardOrg = this.orgRepo.create({
+        name: wardName,
+        type: 'WARD',
+        division: 'Dhaka',
+        city: 'Dhaka',
+        thana: 'Khilgaon',
+        wardNumber,
+        parent: thanaOrg,
+      } as any);
+      wardOrg = await this.orgRepo.save(wardOrg);
+      console.log(`  ✓ Created Ward: ${wardName}`);
+    }
+
+    const wardRole = await this.getOrCreateRole(`Ward Executive - ${wardName}`, wardOrg);
+
+    const wardPositions = [
+      { slug: 'president', title: 'President',        rank: 'member', canCreate: true  },
+      { slug: 'secretary', title: 'Secretary',        rank: 'member', canCreate: true  },
+      { slug: 'office',    title: 'Office Secretary', rank: 'member', canCreate: false },
+      { slug: 'baitulmal', title: 'Baitulmal',        rank: 'member', canCreate: false },
+    ];
+
+    console.log(`  Creating Ward users for ${wardName}...`);
+    for (const p of wardPositions) {
+      const email = `ward-${wardSlug}-${p.slug}@bjioms.com`;
+      const name = this.titleToName(p.title, wardName);
+      const user = await this.createUser({ email, name, org: wardOrg, role: wardRole, rank: p.rank, canCreateUsers: p.canCreate });
+      await this.createPosition(wardOrg, user, p.title, 'EXECUTIVE');
+      console.log(`    ✓ ${p.title}: ${email}`);
+    }
+
+    for (const unitDef of units) {
+      let unitOrg = await this.orgRepo.findOne({ where: { name: unitDef.name, type: 'UNIT' } as any });
+      if (!unitOrg) {
+        unitOrg = this.orgRepo.create({
+          name: unitDef.name,
+          type: 'UNIT',
+          division: 'Dhaka',
+          city: 'Dhaka',
+          thana: 'Khilgaon',
+          wardNumber,
+          parent: wardOrg,
+        } as any);
+        unitOrg = await this.orgRepo.save(unitOrg);
+        console.log(`  ✓ Created Unit: ${unitDef.name}`);
+      }
+
+      const unitRole = await this.getOrCreateRole(`Unit Member - ${unitDef.name}`, unitOrg);
+
+      // President → rank: member
+      const presidentEmail = `unit-${unitDef.slug}-president@bjioms.com`;
+      const president = await this.createUser({
+        email: presidentEmail,
+        name: `${unitDef.name} President`,
+        org: unitOrg, role: unitRole, rank: 'member', canCreateUsers: false,
+      });
+      await this.createPosition(unitOrg, president, 'President', 'EXECUTIVE');
+
+      // Secretary → rank: activist
+      const secretaryEmail = `unit-${unitDef.slug}-secretary@bjioms.com`;
+      const secretary = await this.createUser({
+        email: secretaryEmail,
+        name: `${unitDef.name} Secretary`,
+        org: unitOrg, role: unitRole, rank: 'activist', canCreateUsers: false,
+      });
+      await this.createPosition(unitOrg, secretary, 'Secretary', 'EXECUTIVE');
+
+      // Additional activists: 1-2 (total unit max ~10)
+      const numActivists = randInt(1, 2);
+      for (let i = 1; i <= numActivists; i++) {
+        const email = `unit-${unitDef.slug}-activist${i}@bjioms.com`;
+        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'activist' });
+      }
+
+      // Associates: 3-5 total (first 2 are adv)
+      const numAssociates = randInt(3, 5);
+      for (let i = 1; i <= numAssociates; i++) {
+        const isAdv = i <= 2;
+        const email = `unit-${unitDef.slug}-assoc${i}@bjioms.com`;
+        await this.createUser({ email, name: nextName(), org: unitOrg, role: unitRole, rank: 'associate', isAdv });
+      }
+
+      const total = 2 + numActivists + numAssociates;
+      console.log(`    ✓ Unit ${unitDef.name}: 1 member + ${numActivists + 1} activists + ${numAssociates} associates (2 adv) = ${total} persons`);
+    }
+  }
+
   private titleToName(title: string, orgName: string): string {
     const map: Record<string, string> = {
-      President:        'Mohammad Fahim',
-      Secretary:        'Abdul Wahab',
+      President:          'Mohammad Fahim',
+      Secretary:          'Abdul Wahab',
       'Office Secretary': 'Shuaib Noman',
-      Baitulmal:        'Tawfiq Hasan',
+      Baitulmal:          'Tawfiq Hasan',
     };
     return `${map[title] ?? title} (${orgName})`;
   }

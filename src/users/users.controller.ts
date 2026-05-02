@@ -7,14 +7,16 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll() {
-    // Only return id, name, email, and responsibility/role
-    const users = await this.usersService.findAll();
+  async findAll(@Query('search') search?: string) {
+    const users = await this.usersService.findAll(search);
     return users.map(user => ({
       id: user.id,
       fullname: user.name,
       email: user.email,
       responsibility: user.role ? user.role.name : null,
+      organization: (user as any).organization?.name || null,
+      organizationId: (user as any).organization?.id || null,
+      organizationType: (user as any).organization?.type || null,
       rank: (user as any).rank || null,
       isAdv: (user as any).isAdv ?? false,
     }));
