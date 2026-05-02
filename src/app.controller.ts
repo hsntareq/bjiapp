@@ -1,5 +1,6 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
+import { SeedKhilgaonService } from './common/services/seed-khilgaon.service';
 import { SeedDataService } from './common/services/seed-data.service';
 
 @Controller()
@@ -7,6 +8,7 @@ export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly seedDataService: SeedDataService,
+    private readonly seedKhilgaonService: SeedKhilgaonService,
   ) {}
 
   @Get()
@@ -19,6 +21,16 @@ export class AppController {
     try {
       await this.seedDataService.seed();
       return { success: true, message: 'Database seeded successfully' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('seed-khilgaon')
+  async seedKhilgaon() {
+    try {
+      await this.seedKhilgaonService.seed();
+      return { success: true, message: 'Khilgaon hierarchy seeded successfully' };
     } catch (error) {
       return { success: false, error: error.message };
     }

@@ -46,6 +46,10 @@ export class User {
   @Column({ default: false })
   canCreateUsers: boolean;
 
+  // Rank within the organization (member, activist, associate, adv-activist, adv-associate)
+  @Column({ nullable: true, default: 'member' })
+  rank: string;
+
   @ManyToOne(() => User, (user) => user.createdUsers, {
     nullable: true,
     onDelete: 'SET NULL',
