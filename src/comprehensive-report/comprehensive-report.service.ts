@@ -22,35 +22,40 @@ export class ComprehensiveReportService {
     });
 
     if (existing) {
+      const shouldReset = (key: string) => createDto.resetSections?.includes(key);
+      const mergeOrReset = (key: string, existingVal: any, dtoVal: any) =>
+        shouldReset(key) ? {} : { ...existingVal, ...dtoVal };
+
       // Merge JSON objects rather than replacing them entirely
       const updated = {
         ...existing,
         ...createDto,
-        headerInfo: { ...existing.headerInfo, ...createDto.headerInfo },
-        unitDawat: { ...existing.unitDawat, ...createDto.unitDawat },
-        personalDawat: { ...existing.personalDawat, ...createDto.personalDawat },
-        generalMeeting: { ...existing.generalMeeting, ...createDto.generalMeeting },
-        publicRelations: { ...existing.publicRelations, ...createDto.publicRelations },
-        departmentalInfo: { ...existing.departmentalInfo, ...createDto.departmentalInfo },
-        dawahPublication: { ...existing.dawahPublication, ...createDto.dawahPublication },
-        finance: { ...existing.finance, ...createDto.finance },
-        miscellaneous: { ...existing.miscellaneous, ...createDto.miscellaneous },
-        prCampaign: { ...existing.prCampaign, ...createDto.prCampaign },
-        programs: { ...existing.programs, ...createDto.programs },
-        manpower: { ...existing.manpower, ...createDto.manpower },
-        deptManpower: { ...existing.deptManpower, ...createDto.deptManpower },
-        unitStats: { ...existing.unitStats, ...createDto.unitStats },
-        studentJoining: { ...existing.studentJoining, ...createDto.studentJoining },
-        safar: { ...existing.safar, ...createDto.safar },
-        donors: { ...existing.donors, ...createDto.donors },
-        orgMeetings: { ...existing.orgMeetings, ...createDto.orgMeetings },
-        training: { ...existing.training, ...createDto.training },
-        socialWork: { ...existing.socialWork, ...createDto.socialWork },
-        political: { ...existing.political, ...createDto.political },
-        baitulmal: { ...existing.baitulmal, ...createDto.baitulmal },
-        organizationData: { ...existing.organizationData, ...createDto.organizationData },
-        dawah: { ...existing.dawah, ...createDto.dawah },
-        remarks: { ...existing.remarks, ...createDto.remarks },
+        headerInfo: mergeOrReset('headerInfo', existing.headerInfo, createDto.headerInfo),
+        unitDawat: mergeOrReset('unitDawat', existing.unitDawat, createDto.unitDawat),
+        personalDawat: mergeOrReset('personalDawat', existing.personalDawat, createDto.personalDawat),
+        generalMeeting: mergeOrReset('generalMeeting', existing.generalMeeting, createDto.generalMeeting),
+        publicRelations: mergeOrReset('publicRelations', existing.publicRelations, createDto.publicRelations),
+        departmentalInfo: mergeOrReset('departmentalInfo', existing.departmentalInfo, createDto.departmentalInfo),
+        dawahPublication: mergeOrReset('dawahPublication', existing.dawahPublication, createDto.dawahPublication),
+        finance: mergeOrReset('finance', existing.finance, createDto.finance),
+        miscellaneous: mergeOrReset('miscellaneous', existing.miscellaneous, createDto.miscellaneous),
+        prCampaign: mergeOrReset('prCampaign', existing.prCampaign, createDto.prCampaign),
+        programs: mergeOrReset('programs', existing.programs, createDto.programs),
+        manpower: mergeOrReset('manpower', existing.manpower, createDto.manpower),
+        deptManpower: mergeOrReset('deptManpower', existing.deptManpower, createDto.deptManpower),
+        unitStats: mergeOrReset('unitStats', existing.unitStats, createDto.unitStats),
+        studentJoining: mergeOrReset('studentJoining', existing.studentJoining, createDto.studentJoining),
+        safar: mergeOrReset('safar', existing.safar, createDto.safar),
+        donors: mergeOrReset('donors', existing.donors, createDto.donors),
+        orgMeetings: mergeOrReset('orgMeetings', existing.orgMeetings, createDto.orgMeetings),
+        unitOrganization: mergeOrReset('unitOrganization', existing.unitOrganization, createDto.unitOrganization),
+        training: mergeOrReset('training', existing.training, createDto.training),
+        socialWork: mergeOrReset('socialWork', existing.socialWork, createDto.socialWork),
+        political: mergeOrReset('political', existing.political, createDto.political),
+        baitulmal: mergeOrReset('baitulmal', existing.baitulmal, createDto.baitulmal),
+        organizationData: mergeOrReset('organizationData', existing.organizationData, createDto.organizationData),
+        dawah: mergeOrReset('dawah', existing.dawah, createDto.dawah),
+        remarks: mergeOrReset('remarks', existing.remarks, createDto.remarks),
       };
       return this.reportRepository.save(updated);
     }

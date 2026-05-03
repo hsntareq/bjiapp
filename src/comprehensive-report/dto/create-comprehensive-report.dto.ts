@@ -1,4 +1,4 @@
-import { IsNumber, IsObject, IsOptional } from 'class-validator';
+import { IsArray, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateComprehensiveReportDto {
   @IsNumber()
@@ -86,4 +86,8 @@ export class CreateComprehensiveReportDto {
   dawah?: Record<string, any>;
   @IsObject() @IsOptional()
   unitOrganization?: Record<string, any>;
+
+  /** Sections listed here will be replaced with {} instead of merged */
+  @IsArray() @IsOptional() @IsString({ each: true })
+  resetSections?: string[];
 }
