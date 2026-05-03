@@ -71,7 +71,7 @@ export class SeedKhilgaonService {
       rank: params.rank,
       isAdv: params.isAdv ?? false,
       canCreateUsers: params.canCreateUsers ?? false,
-    } as any);
+    } as any) as unknown as User;
     return this.userRepo.save(user);
   }
 
@@ -93,7 +93,7 @@ export class SeedKhilgaonService {
   private async getOrCreateRole(name: string, org: Organization): Promise<Role> {
     let role = await this.roleRepo.findOne({ where: { name } });
     if (!role) {
-      role = this.roleRepo.create({ name, description: name, organization: org } as any);
+      role = this.roleRepo.create({ name, description: name, organization: org } as any) as unknown as Role;
       role = await this.roleRepo.save(role);
     }
     return role;
@@ -136,7 +136,7 @@ export class SeedKhilgaonService {
         city: 'Dhaka',
         thana: 'Khilgaon',
         parent: parent ?? undefined,
-      } as any);
+      } as any) as unknown as Organization;
       thanaOrg = await this.orgRepo.save(thanaOrg);
       console.log('  ✓ Created Thana: Khilgaon North');
     }
@@ -241,7 +241,7 @@ export class SeedKhilgaonService {
         thana: 'Khilgaon',
         wardNumber,
         parent: thanaOrg,
-      } as any);
+      } as any) as unknown as Organization;
       wardOrg = await this.orgRepo.save(wardOrg);
       console.log(`  ✓ Created Ward: ${wardName}`);
     }
@@ -275,7 +275,7 @@ export class SeedKhilgaonService {
           thana: 'Khilgaon',
           wardNumber,
           parent: wardOrg,
-        } as any);
+        } as any) as unknown as Organization;
         unitOrg = await this.orgRepo.save(unitOrg);
         console.log(`  ✓ Created Unit: ${unitDef.name}`);
       }
