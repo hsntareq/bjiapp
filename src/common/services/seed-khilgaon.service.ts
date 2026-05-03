@@ -76,10 +76,23 @@ export class SeedKhilgaonService {
   }
 
   private async createPosition(org: Organization, user: User, positionTitle: string, group: string): Promise<void> {
-    const existing = await this.positionRepo.findOne({
+    // Already linked to this user — nothing to do
+    const existingForUser = await this.positionRepo.findOne({
       where: { organizationId: org.id, userId: user.id } as any,
     });
-    if (existing) return;
+    if (existingForUser) return;
+
+    // Reuse a vacant slot with the same title rather than creating a duplicate
+    const vacantSlot = await this.positionRepo.findOne({
+      where: { organizationId: org.id, positionTitle, userId: null } as any,
+    });
+    if (vacantSlot) {
+      (vacantSlot as any).userId = user.id;
+      (vacantSlot as any).isActive = true;
+      await this.positionRepo.save(vacantSlot as any);
+      return;
+    }
+
     const pos = this.positionRepo.create({
       organizationId: org.id,
       userId: user.id,
