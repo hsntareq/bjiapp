@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Organization, Role } from '../common/entities';
+import { Organization, Role, OrgPosition } from '../common/entities';
 import { PersonalReport } from '../personal-report/personal-report.entity';
+import { UserPayment } from './user-payment.entity';
 
 @Entity('users')
 export class User {
@@ -21,6 +22,9 @@ export class User {
 
   @Column({ nullable: true })
   name: string;
+
+  @Column({ name: 'fullname', nullable: true })
+  fullname: string;
 
   @Column({ default: true })
   isActive: boolean;
@@ -57,6 +61,42 @@ export class User {
   @Column({ nullable: true })
   bloodGroup: string;
 
+  @Column({ name: 'monthly_baitulmal_amount', nullable: true, type: 'integer' })
+  monthlyBaitulmalAmount: number;
+
+  @Column({ name: 'yearly_donation_amount', nullable: true, type: 'integer' })
+  yearlyDonationAmount: number;
+
+  @Column({ name: 'knowledgebase_id', nullable: true, type: 'integer' })
+  knowledgebaseId: number;
+
+  @Column({ name: 'academic_qualifications', type: 'json', nullable: true })
+  academicQualifications: any;
+
+  @Column({ nullable: true, type: 'text' })
+  address: string;
+
+  @Column({ nullable: true })
+  nid: string;
+
+  @Column({ nullable: true })
+  photo: string;
+
+  @Column({ name: 'job_title', nullable: true })
+  jobTitle: string;
+
+  @Column({ name: 'job_organization', nullable: true })
+  jobOrganization: string;
+
+  @Column({ name: 'office_address', nullable: true, type: 'text' })
+  officeAddress: string;
+
+  @Column({ name: 'is_monthly_baitulmal_paid', default: false })
+  isMonthlyBaitulmalPaid: boolean;
+
+  @Column({ name: 'yearly_donation_paid', default: 0, type: 'integer' })
+  yearlyDonationPaid: number;
+
   @ManyToOne(() => User, (user) => user.createdUsers, {
     nullable: true,
     onDelete: 'SET NULL',
@@ -71,6 +111,12 @@ export class User {
 
   @OneToMany(() => PersonalReport, (report) => report.user)
   personalReports: PersonalReport[];
+
+  @OneToMany(() => OrgPosition, (pos) => pos.user)
+  positions: OrgPosition[];
+
+  @OneToMany(() => UserPayment, (payment) => payment.user)
+  payments: UserPayment[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

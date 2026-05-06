@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 
@@ -8,10 +8,15 @@ export class UsersController {
 
   @Get()
   async findAll(@Query('search') search?: string) {
-    const users = await this.usersService.findAll(search);
+    const qb = this.usersService.findAllQueryBuilder(search);
+    const users = await qb.leftJoinAndSelect('user.positions', 'positions')
+      .leftJoinAndSelect('positions.organization', 'posOrg')
+      .leftJoinAndSelect('user.payments', 'payments')
+      .getMany();
+    
     return users.map(user => ({
       id: user.id,
-      fullname: user.name,
+      fullname: user.fullname || user.name,
       email: user.email,
       mobile: user.mobile || null,
       bloodGroup: (user as any).bloodGroup || null,
@@ -23,7 +28,46 @@ export class UsersController {
       city: (user as any).organization?.city || null,
       rank: (user as any).rank || null,
       isAdv: (user as any).isAdv ?? false,
+      monthlyBaitulmalTarget: user.monthlyBaitulmalAmount || 0,
+      monthlyBaitulmalPaid: user.isMonthlyBaitulmalPaid ? (user.monthlyBaitulmalAmount || 0) : 0,
+      yearlyDonationTarget: user.yearlyDonationAmount || 0,
+      yearlyDonationPaid: user.yearlyDonationPaid || 0,
+      knowledgebaseId: user.knowledgebaseId,
+      address: user.address,
+      nid: user.nid,
+      photo: user.photo,
+      jobTitle: user.jobTitle,
+      jobOrganization: user.jobOrganization,
+      officeAddress: user.officeAddress,
+      monthlyBaitulmalStatus: user.isMonthlyBaitulmalPaid ? 'Paid' : `Remaining: ৳${user.monthlyBaitulmalAmount || 0}`,
+      yearlyDonationRemaining: `Remaining: ৳${(user.yearlyDonationAmount || 0) - (user.yearlyDonationPaid || 0)}`,
+      academicQualifications: user.academicQualifications?.map(q => ({
+        degree: q.degree || q.qualification,
+        subject: q.subject || q.department,
+        institution: q.institution,
+        year: q.year,
+      })) || [],
+      positions: user.positions?.map(p => ({
+        organizationId: p.organizationId,
+        organizationName: p.organization?.name,
+        positionTitle: p.positionTitle,
+        positionGroup: p.positionGroup,
+        isActive: p.isActive,
+      })) || [],
+      payments: user.payments?.sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month)) || [],
     }));
+  }
+
+  @Get(':id/payments')
+  async getUserPayments(@Param('id') id: string) {
+    const payments = await this.usersService.getUserPayments(parseInt(id));
+    // Group by year
+    const grouped = payments.reduce((acc, p) => {
+      if (!acc[p.year]) acc[p.year] = [];
+      acc[p.year].push(p);
+      return acc;
+    }, {});
+    return grouped;
   }
 
   @Get('by-organization')

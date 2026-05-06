@@ -20,6 +20,7 @@ export class MonthlyReportController {
     private readonly usersService: UsersService,
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   async getReport(@Req() req: any, @Query('month') month: string, @Query('userId') userId?: string) {
     // Get userId from param or authenticated user

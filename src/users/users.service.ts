@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Organization } from '../common/entities';
+import { UserPayment } from './user-payment.entity';
 import { User } from './user.entity';
 
 @Injectable()
@@ -11,6 +12,8 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(Organization)
     private orgRepository: Repository<Organization>,
+    @InjectRepository(UserPayment)
+    private paymentRepository: Repository<UserPayment>,
   ) {}
 
   async findByEmail(email: string): Promise<User | undefined> {
@@ -43,6 +46,10 @@ export class UsersService {
   }
 
   async findAll(search?: string): Promise<User[]> {
+    return this.findAllQueryBuilder(search).getMany();
+  }
+
+  findAllQueryBuilder(search?: string) {
     const qb = this.usersRepository.createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('user.organization', 'organization');
@@ -50,12 +57,12 @@ export class UsersService {
     if (search) {
       const q = `%${search.toLowerCase()}%`;
       qb.where(
-        'LOWER(user.name) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(organization.name) LIKE :q OR LOWER(role.name) LIKE :q',
+        'LOWER(user.fullname) LIKE :q OR LOWER(user.name) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(organization.name) LIKE :q OR LOWER(role.name) LIKE :q',
         { q },
       );
     }
 
-    return qb.orderBy('organization.name').addOrderBy('user.name').getMany();
+    return qb.orderBy('organization.name').addOrderBy('user.name');
   }
 
   async getUsersWithOrgHierarchy(
@@ -142,5 +149,12 @@ export class UsersService {
       currentOrgUsers: currentOrgUsers.map(u => formatUser(u)),
       childOrgUsers: childOrgUsers.map(u => formatUser(u, u.organization?.name)),
     };
+  }
+
+  async getUserPayments(userId: number) {
+    return this.paymentRepository.find({
+      where: { userId },
+      order: { year: 'DESC', month: 'DESC' },
+    });
   }
 }

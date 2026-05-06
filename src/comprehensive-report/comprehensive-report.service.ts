@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ComprehensiveReport } from './comprehensive-report.entity';
+import { Organization } from '../common/entities';
 import { CreateComprehensiveReportDto } from './dto/create-comprehensive-report.dto';
 import { UpdateComprehensiveReportDto } from './dto/update-comprehensive-report.dto';
+import { aggregateReports, aggregateJson } from './comprehensive-report.utils';
 
 @Injectable()
 export class ComprehensiveReportService {
   constructor(
     @InjectRepository(ComprehensiveReport)
     private reportRepository: Repository<ComprehensiveReport>,
+    @InjectRepository(Organization)
+    private orgRepository: Repository<Organization>,
   ) {}
 
   async createOrUpdate(createDto: CreateComprehensiveReportDto): Promise<ComprehensiveReport> {
@@ -59,10 +63,99 @@ export class ComprehensiveReportService {
     return this.reportRepository.save(newReport);
   }
 
-  async findOne(organizationId: number, year: number, month: number): Promise<ComprehensiveReport | null> {
-    return this.reportRepository.findOne({
+  async findOne(organizationId: number, year: number, month: number): Promise<any> {
+    const org = await this.orgRepository.findOne({
+      where: { id: organizationId },
+      relations: ['children'],
+    });
+
+    if (!org) {
+      throw new NotFoundException(`Organization with ID ${organizationId} not found`);
+    }
+
+    const ownReport = await this.reportRepository.findOne({
       where: { organizationId, year, month },
     });
+
+    // If it's a UNIT, just return its own report
+    if (org.type === 'UNIT') {
+      return ownReport || null;
+    }
+
+    // If it's WARD or higher, aggregate from children
+    const childOrgs = org.children || [];
+    
+    if (childOrgs.length === 0) {
+      return ownReport || null;
+    }
+
+    // To get a full aggregate, we should fetch reports for all descendants that are units, 
+    // OR fetch child reports and hope they are already aggregated.
+    // The user said: "multiple unit report belongs to a ward and the calculation of unit report is the report of a ward per month"
+    // "similarly multiple ward report belongs to a thana..."
+    
+    // Let's implement a helper to get all unit descendant IDs
+    const getAllUnitDescendantIds = async (id: number): Promise<number[]> => {
+      const children = await this.orgRepository.find({ where: { parentId: id } });
+      let unitIds: number[] = [];
+      for (const child of children) {
+        if (child.type === 'UNIT') {
+          unitIds.push(child.id);
+        } else {
+          const nested = await getAllUnitDescendantIds(child.id);
+          unitIds = unitIds.concat(nested);
+        }
+      }
+      return unitIds;
+    };
+
+    const unitIds = await getAllUnitDescendantIds(organizationId);
+
+    if (unitIds.length === 0) {
+      return ownReport || null;
+    }
+
+    // Fetch reports for all descendant units
+    const descendantReports = await this.reportRepository.find({
+      where: {
+        organizationId: In(unitIds),
+        year,
+        month,
+      },
+    });
+
+    const aggregatedData = aggregateReports(descendantReports);
+
+    if (!ownReport) {
+      return {
+        organizationId,
+        year,
+        month,
+        ...aggregatedData,
+      };
+    }
+
+    // Merge own report (adjustments/extra data) with aggregated data
+    const mergedReport = {
+      ...ownReport,
+    };
+
+    const sections = [
+      'headerInfo', 'unitDawat', 'personalDawat', 'generalMeeting',
+      'publicRelations', 'prCampaign', 'departmentalInfo', 'dawahPublication',
+      'programs', 'manpower', 'deptManpower', 'unitStats', 'studentJoining',
+      'safar', 'donors', 'orgMeetings', 'training', 'socialWork',
+      'political', 'finance', 'baitulmal', 'organizationData', 'dawah',
+      'miscellaneous', 'remarks', 'unitOrganization'
+    ];
+
+    for (const section of sections) {
+        if (aggregatedData[section] || ownReport[section]) {
+            mergedReport[section] = aggregateJson(aggregatedData[section] || {}, ownReport[section] || {});
+        }
+    }
+
+    return mergedReport;
   }
 
   async update(id: number, updateDto: UpdateComprehensiveReportDto): Promise<ComprehensiveReport> {
