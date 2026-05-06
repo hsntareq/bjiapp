@@ -114,12 +114,15 @@ export class AuthService {
     parentOrgId: number | null;
     parentOrgType: string | null;
     positionTitle: string | null;
+    positionGroup: string | null;
+    hasOrgAccess: boolean;
   }> {
     let orgType: string | null = null;
     let orgName: string | null = null;
     let parentOrgId: number | null = null;
     let parentOrgType: string | null = null;
     let positionTitle: string | null = null;
+    let positionGroup: string | null = null;
 
     if (organizationId) {
       const org = await this.orgRepository.findOne({
@@ -136,12 +139,19 @@ export class AuthService {
       }
 
       const position = await this.orgPositionRepository.findOne({
-        where: { userId: userId as any, organizationId },
+        where: { userId: userId as any, organizationId, isActive: true },
       });
       if (position) {
         positionTitle = position.positionTitle;
+        positionGroup = position.positionGroup;
       }
     }
+
+    // Access granted only for key leadership positions (not Baitulmal, Treasurer, etc.)
+    const EXEC_TITLES = ['President', 'Secretary', 'Office', 'Office Secretary', 'Vice President', 'Joint Secretary'];
+    const hasOrgAccess = !!positionTitle && EXEC_TITLES.some(
+      (t) => positionTitle.toLowerCase().includes(t.toLowerCase())
+    );
 
     return {
       userId,
@@ -151,6 +161,8 @@ export class AuthService {
       parentOrgId,
       parentOrgType,
       positionTitle,
+      positionGroup,
+      hasOrgAccess,
     };
   }
 }
