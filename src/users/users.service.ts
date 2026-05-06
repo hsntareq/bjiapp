@@ -70,10 +70,7 @@ export class UsersService {
     level: string,
     userId?: number,
     userOrgId?: number,
-  ): Promise<{
-    currentOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; rank: string | null; isAdv: boolean }>;
-    childOrgUsers: Array<{ id: number; fullname: string; email: string; responsibility: string | null; organization: string; childOrgName?: string; rank: string | null; isAdv: boolean }>;
-  }> {
+  ): Promise<any> {
     // Get the organization
     const org = await this.orgRepository.findOne({
       where: { id: orgId },
@@ -123,18 +120,19 @@ export class UsersService {
     // Get users for current org
     const currentOrgUsers = await this.usersRepository.find({
       where: { organizationId: orgId },
-      relations: ['role', 'organization'],
+      relations: ['role', 'organization', 'positions', 'positions.organization', 'payments'],
     });
 
     // Get users for child orgs
     const childOrgUsers = childOrgIds.length > 0
       ? await this.usersRepository.find({
           where: { organizationId: In(childOrgIds) },
-          relations: ['role', 'organization'],
+          relations: ['role', 'organization', 'positions', 'positions.organization', 'payments'],
         })
       : [];
 
     const formatUser = (user: User, childOrgName?: string | null) => ({
+      ...user,
       id: user.id,
       fullname: user.name,
       email: user.email,
