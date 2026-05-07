@@ -1,15 +1,53 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('organizations')
-export class Organization {
+@Entity('organization_levels')
+export class OrganizationLevel {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ unique: true })
   name: string;
 
-  @Column()
-  type: string; // CENTRAL, CITY, THANA, WARD, UNIT
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
+  @Column({ unique: true })
+  slug: string;
+
+  @Column({ name: 'hierarchy_order', default: 0 })
+  hierarchyOrder: number;
+
+  @OneToMany(() => Organization, (org) => org.level)
+  organizations: Organization[];
+
+  @OneToMany(() => Position, (pos) => pos.level)
+  positions: Position[];
+}
+
+@Entity('organizations')
+export class Organization {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Organization, (org) => org.children, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'parent_id' })
+  parent: Organization;
+
+  @Column({ name: 'parent_id', nullable: true })
+  parentId: number;
+
+  @ManyToOne(() => OrganizationLevel, (level) => level.organizations)
+  @JoinColumn({ name: 'organization_level_id' })
+  level: OrganizationLevel;
+
+  @Column({ name: 'organization_level_id', nullable: true })
+  organizationLevelId: number;
+
+  @Column({ nullable: true })
+  type: string;
 
   @Column({ nullable: true })
   division: string;
@@ -26,25 +64,122 @@ export class Organization {
   @Column({ nullable: true })
   unitName: string;
 
-  @ManyToOne(() => Organization, (org) => org.children, {
-    nullable: true,
-    onDelete: 'SET NULL',
-  })
-  parent: Organization;
+  @Column()
+  name: string;
+
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
+  @Column({ unique: true, nullable: true })
+  slug: string;
 
   @Column({ nullable: true })
-  parentId: number;
+  code: string;
 
   @OneToMany(() => Organization, (org) => org.parent)
   children: Organization[];
 
-  @OneToMany(() => Role, (role) => role.organization)
-  roles: Role[];
+  @OneToMany('Role', 'organization')
+  roles: any[];
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @OneToMany('OrganizationPositionAssignment', 'organization')
+  assignments: any[];
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}
+
+@Entity('positions')
+export class Position {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => OrganizationLevel, (level) => level.positions)
+  @JoinColumn({ name: 'organization_level_id' })
+  level: OrganizationLevel;
+
+  @Column({ name: 'organization_level_id' })
+  organizationLevelId: number;
+
+  @Column()
+  name: string;
+
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
+  @Column()
+  slug: string;
+
+  @Column({ name: 'rank_order', default: 0 })
+  rankOrder: number;
+
+  @Column({ name: 'is_executive', default: false })
+  isExecutive: boolean;
+
+  @OneToMany('OrganizationPositionAssignment', 'position')
+  assignments: any[];
+
+  @OneToMany('RolePermission', 'position')
+  rolePermissions: any[];
+}
+
+@Entity('organization_position_assignments')
+export class OrganizationPositionAssignment {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'organization_id' })
+  organization: Organization;
+
+  @Column({ name: 'organization_id' })
+  organizationId: number;
+
+  @ManyToOne(() => Position, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'position_id' })
+  position: Position;
+
+  @Column({ name: 'position_id', nullable: true })
+  positionId: number;
+
+  @Column({ name: 'user_id', nullable: true })
+  userId: number;
+
+  @ManyToOne('User', { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'user_id' })
+  user: any;
+
+  @Column({ name: 'assigned_by', nullable: true })
+  assignedBy: number;
+
+  @Column({ name: 'position_title', nullable: true })
+  positionTitle: string;
+
+  @Column({ name: 'position_group', nullable: true })
+  positionGroup: string;
+
+  @Column({ name: 'notes', nullable: true, type: 'text' })
+  notes: string;
+
+  @Column({ name: 'is_active', default: true })
+  isActive: boolean;
+
+  @Column({ name: 'start_date', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  startDate: Date;
+
+  @Column({ name: 'end_date', type: 'timestamp', nullable: true })
+  endDate: Date;
+
+  @Column({ default: 'active' })
+  status: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
 
@@ -56,24 +191,28 @@ export class Role {
   @Column()
   name: string;
 
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
   @Column({ nullable: true })
   description: string;
 
   @ManyToOne(() => Organization, (org) => org.roles, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'organization_id' })
   organization: Organization;
 
-  @Column()
+  @Column({ name: 'organization_id' })
   organizationId: number;
 
-  @OneToMany(() => Permission, (perm) => perm.role, { cascade: true })
-  permissions: Permission[];
+  @OneToMany('Permission', 'role', { cascade: true })
+  permissions: any[];
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
 
@@ -85,73 +224,56 @@ export class Permission {
   @Column()
   name: string;
 
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
+  @Column({ nullable: true })
+  slug: string;
+
   @Column({ nullable: true })
   description: string;
 
-  @Column()
-  resource: string; // e.g., 'users', 'activities', 'reports'
+  @Column({ nullable: true })
+  resource: string;
 
-  @Column()
-  action: string; // e.g., 'create', 'read', 'update', 'delete'
+  @Column({ nullable: true })
+  action: string;
 
   @ManyToOne(() => Role, (role) => role.permissions, {
     nullable: true,
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'role_id' })
   role: Role;
 
-  @Column({ nullable: true })
+  @Column({ name: 'role_id', nullable: true })
   roleId: number;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @OneToMany('RolePermission', 'permission')
+  rolePermissions: any[];
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
 
-/**
- * Represents a member's position/role within a specific organization.
- * positionGroup: EXECUTIVE | SHURA | KORMO_PORISHODH | TEAM
- * positionTitle: President | Secretary | Baitulmal | etc.
- */
-@Entity('org_positions')
-export class OrgPosition {
+@Entity('role_permissions')
+export class RolePermission {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'user_id', nullable: true })
-  userId: number;
+  @ManyToOne(() => Position, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'position_id' })
+  position: Position;
 
-  @ManyToOne('User', { nullable: true, onDelete: 'SET NULL', eager: false })
-  @JoinColumn({ name: 'user_id' })
-  user: any;
+  @Column({ name: 'position_id' })
+  positionId: number;
 
-  @Column({ name: 'organization_id' })
-  organizationId: number;
+  @ManyToOne(() => Permission, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'permission_id' })
+  permission: Permission;
 
-  @ManyToOne(() => Organization, { nullable: true, onDelete: 'CASCADE', eager: false })
-  @JoinColumn({ name: 'organization_id' })
-  organization: Organization | null;
-
-  @Column({ name: 'position_title', length: 100 })
-  positionTitle: string;
-
-  @Column({ name: 'position_group', length: 50 })
-  positionGroup: string;
-
-  @Column({ nullable: true, type: 'text' })
-  notes: string;
-
-  @Column({ name: 'is_active', default: true })
-  isActive: boolean;
-
-  @Column({ name: 'start_date', type: 'date', nullable: true })
-  startDate: Date;
-
-  @Column({ name: 'end_date', type: 'date', nullable: true })
-  endDate: Date;
-
-  @Column({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
-
-  @Column({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-  updatedAt: Date;
+  @Column({ name: 'permission_id' })
+  permissionId: number;
 }
+
+export { OrganizationPositionAssignment as OrgPosition };

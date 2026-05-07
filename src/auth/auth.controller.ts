@@ -18,7 +18,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: { email?: string; mobile?: string; password: string }) {
+  async register(@Body() body: { email?: string; phone?: string; password: string }) {
     return this.authService.register(body);
   }
 
@@ -31,9 +31,9 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  @Post('login-mobile')
-  async loginWithMobile(@Body() body: { mobile: string; password: string }): Promise<unknown> {
-    const user: unknown = await this.authService.validateUserByMobile(body.mobile, body.password);
+  @Post('login-phone')
+  async loginWithPhone(@Body() body: { phone: string; password: string }): Promise<unknown> {
+    const user: unknown = await this.authService.validateUserByPhone(body.phone, body.password);
     if (!user) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
@@ -70,5 +70,15 @@ export class AuthController {
   async getMe(@Req() req: Request): Promise<unknown> {
     const user = (req as any).user;
     return this.authService.getMe(user.userId, user.organizationId);
+  }
+
+  @Post('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Req() req: Request,
+    @Body() body: { oldPassword: string; newPassword: string },
+  ) {
+    const user = (req as any).user;
+    return this.authService.changePassword(user.sub, body.oldPassword, body.newPassword);
   }
 }

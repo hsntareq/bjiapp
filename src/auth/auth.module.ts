@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Organization, OrgPosition } from '../common/entities';
+import { Organization, OrganizationPositionAssignment } from '../common/entities';
 import { User } from '../users/user.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -13,7 +13,7 @@ import { LocalStrategy } from './local.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Organization, OrgPosition]),
+    TypeOrmModule.forFeature([User, Organization, OrganizationPositionAssignment]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

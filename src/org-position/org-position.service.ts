@@ -16,8 +16,8 @@ export class OrgPositionService {
       `SELECT p.id, p.user_id, p.organization_id, p.position_title, p.position_group,
               p.notes, p.is_active, p.start_date, p.end_date, p.created_at, p.updated_at,
               u.id AS u_id, u.name AS u_name, u.email AS u_email,
-              u.mobile AS u_mobile, u."isActive" AS u_is_active
-       FROM org_positions p
+              u.phone AS u_phone, u."isActive" AS u_is_active
+       FROM organization_position_assignments p
        LEFT JOIN users u ON u.id = p.user_id
        WHERE p.organization_id = $1
        ORDER BY p.position_group ASC, p.position_title ASC`,
@@ -36,12 +36,28 @@ export class OrgPositionService {
       createdAt: r.created_at,
       updatedAt: r.updated_at,
       user: r.u_id
-        ? { id: r.u_id, name: r.u_name, email: r.u_email, mobile: r.u_mobile, isActive: r.u_is_active }
+        ? { id: r.u_id, name: r.u_name, email: r.u_email, phone: r.u_phone, isActive: r.u_is_active }
         : null,
     }));
   }
 
   async create(dto: CreateOrgPositionDto): Promise<any> {
+    // Prevent duplicate slot if same title/group already exists for this org (optional, but good for some groups)
+    // However, for TEAM or SHURA, multiple slots are allowed.
+    // So we primarily check for duplicate USER assignments.
+    if (dto.userId) {
+      const existing = await this.positionRepo.findOne({
+        where: { 
+          organizationId: dto.organizationId, 
+          userId: dto.userId, 
+          positionTitle: dto.positionTitle 
+        }
+      });
+      if (existing) {
+        throw new Error('This user is already assigned to this position in this organization.');
+      }
+    }
+
     const position = this.positionRepo.create({
       organizationId: dto.organizationId,
       userId: dto.userId ?? null,
@@ -58,6 +74,19 @@ export class OrgPositionService {
   async update(id: number, dto: UpdateOrgPositionDto): Promise<any> {
     const position = await this.positionRepo.findOne({ where: { id } });
     if (!position) throw new NotFoundException(`Position ${id} not found`);
+
+    if (dto.userId) {
+      const existing = await this.positionRepo.findOne({
+        where: { 
+          organizationId: position.organizationId, 
+          userId: dto.userId, 
+          positionTitle: position.positionTitle 
+        }
+      });
+      if (existing && existing.id !== id) {
+        throw new Error('This user is already assigned to this position in this organization.');
+      }
+    }
 
     if (dto.userId !== undefined) position.userId = dto.userId as any;
     if (dto.positionTitle !== undefined) position.positionTitle = dto.positionTitle;
@@ -77,20 +106,34 @@ export class OrgPositionService {
   }
 
   async seedDefaultPositions(organizationId: number, orgType: string): Promise<any[]> {
-    const existing = await this.positionRepo.count({ where: { organizationId } });
-    if (existing > 0) return [];
-
     const templates = DEFAULT_POSITIONS[orgType] ?? [];
     const created: OrgPosition[] = [];
+    
+    // Get existing positions to avoid duplicates
+    const existingPositions = await this.positionRepo.find({
+      where: { organizationId } as any
+    });
+
     for (const tmpl of templates) {
-      const pos = this.positionRepo.create({
-        organizationId,
-        userId: null,
-        positionTitle: tmpl.title,
-        positionGroup: tmpl.group,
-        isActive: true,
-      } as any);
-      created.push(await this.positionRepo.save(pos as any));
+      // For groups like SHURA or TEAM, multiple slots are allowed.
+      // We check if we already have the required number of slots for this title.
+      const templateCount = templates.filter(t => t.title === tmpl.title).length;
+      const currentCount = existingPositions.filter(p => p.positionTitle === tmpl.title).length;
+
+      if (currentCount < templateCount) {
+        const pos = this.positionRepo.create({
+          organizationId,
+          userId: null,
+          positionTitle: tmpl.title,
+          positionGroup: tmpl.group,
+          isActive: true,
+        } as any);
+        const saved = await this.positionRepo.save(pos as any);
+        created.push(saved);
+        
+        // Update local tracking to handle multiple slots for same title in one loop
+        existingPositions.push(saved);
+      }
     }
     return created;
   }

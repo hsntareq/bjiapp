@@ -1,0 +1,362 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model comprehensive_reports {
+  id               Int           @id @default(autoincrement())
+  organization_id  Int
+  year             Int
+  month            Int
+  headerInfo       Json          @default("{}")
+  unitDawat        Json          @default("{}")
+  personalDawat    Json          @default("{}")
+  generalMeeting   Json          @default("{}")
+  publicRelations  Json          @default("{}")
+  departmentalInfo Json          @default("{}")
+  dawahPublication Json          @default("{}")
+  finance          Json          @default("{}")
+  miscellaneous    Json          @default("{}")
+  createdAt        DateTime      @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime      @default(now()) @db.Timestamp(6)
+  prCampaign       Json          @default("{}")
+  programs         Json          @default("{}")
+  manpower         Json          @default("{}")
+  deptManpower     Json          @default("{}")
+  unitStats        Json          @default("{}")
+  studentJoining   Json          @default("{}")
+  safar            Json          @default("{}")
+  donors           Json          @default("{}")
+  orgMeetings      Json          @default("{}")
+  training         Json          @default("{}")
+  socialWork       Json          @default("{}")
+  political        Json          @default("{}")
+  remarks          Json          @default("{}")
+  baitulmal        Json          @default("{}")
+  organizationData Json          @default("{}")
+  dawah            Json          @default("{}")
+  unitOrganization Json          @default("{}")
+  
+  organization     organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, year, month])
+}
+
+model monthly_plan {
+  id                      Int      @id @default(autoincrement())
+  month                   String   @db.VarChar
+  quranStudyDays          Int      @default(0)
+  haditsRead              Int      @default(0)
+  literature              Int      @default(0)
+  salahJamaat             Int      @default(0)
+  targetContactDawah      Int      @default(0)
+  targetContactWorker     Int      @default(0)
+  targetContactMember     Int      @default(0)
+  workerContact           Int      @default(0)
+  bookDistribution        Int      @default(0)
+  familyMeetingDays       Int      @default(0)
+  socialWorkDays          Int      @default(0)
+  orgWorkHours            Int      @default(0)
+  safarDays               Int      @default(0)
+  reportKeepingDays       Int      @default(0)
+  selfCriticismDays       Int      @default(0)
+  baitulmalIncreaseAmount Int      @default(0)
+  sellBooksNumber         Int      @default(0)
+  socialHelp              String   @default("")
+  professionalHelp        String   @default("")
+  createdAt               DateTime @default(now()) @db.Timestamp(6)
+  userId                  Int?
+  increaseAssociate       String   @default("")
+  increaseActivist        String   @default("")
+  increaseMember          String   @default("")
+  memorizingSura          String   @default("")
+  memorizingAyat          String   @default("")
+  memorizingHadits        String   @default("")
+  
+  user                    users?   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
+}
+
+model monthly_report {
+  id                      Int      @id @default(autoincrement())
+  month                   String   @db.VarChar
+  increaseAssociate       String   @default("")
+  increaseActivist        String   @default("")
+  increaseMember          String   @default("")
+  memorizingSura          String   @default("")
+  memorizingAyat          String   @default("")
+  memorizingHadits        String   @default("")
+  baitulmalIncreaseAmount Int      @default(0)
+  sellBooksNumber         Int      @default(0)
+  socialHelp              String   @default("")
+  professionalHelp        String   @default("")
+  createdAt               DateTime @default(now()) @db.Timestamp(6)
+  updatedAt               DateTime @default(now()) @db.Timestamp(6)
+  userId                  Int?
+  
+  user                    users?   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
+}
+
+model org_positions {
+  id              Int           @id @default(autoincrement())
+  user_id         Int?
+  organization_id Int
+  position_title  String        @db.VarChar(100)
+  position_group  String        @db.VarChar(50)
+  notes           String?
+  is_active       Boolean       @default(true)
+  start_date      DateTime?     @db.Date
+  end_date        DateTime?     @db.Date
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
+  
+  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user            users?        @relation(fields: [user_id], references: [id])
+}
+
+model organization_levels {
+  id              Int             @id @default(autoincrement())
+  name            String          @db.VarChar
+  bn_name         String?         @db.VarChar
+  slug            String          @unique @db.VarChar
+  hierarchy_order Int             @default(0)
+  organizations   organizations[]
+  positions       positions[]
+}
+
+model organizations {
+  id                    Int                     @id @default(autoincrement())
+  parent_id             Int?
+  organization_level_id Int?
+  name                  String                  @unique @db.VarChar
+  bn_name               String?                 @db.VarChar
+  slug                  String?                 @unique @db.VarChar
+  code                  String?                 @db.VarChar
+  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  updated_at            DateTime                @default(now()) @db.Timestamp(6)
+  
+  type                  String?                 @db.VarChar
+  division              String?                 @db.VarChar
+  city                  String?                 @db.VarChar
+  thana                 String?                 @db.VarChar
+  wardNumber            Int?
+  unitName              String?                 @db.VarChar
+
+  parent                organizations?          @relation("org_hierarchy", fields: [parent_id], references: [id])
+  children              organizations[]         @relation("org_hierarchy")
+  level                 organization_levels?    @relation(fields: [organization_level_id], references: [id])
+  assignments           organization_position_assignments[]
+  
+  comprehensive_reports comprehensive_reports[]
+  plannings             plannings[]
+  roles                 roles[]
+  users                 users[]
+  org_positions         org_positions[]
+}
+
+model positions {
+  id                    Int                   @id @default(autoincrement())
+  organization_level_id Int
+  name                  String                @db.VarChar
+  bn_name               String?               @db.VarChar
+  slug                  String                @db.VarChar
+  rank_order            Int
+  is_executive          Boolean               @default(false)
+  
+  level                 organization_levels   @relation(fields: [organization_level_id], references: [id])
+  assignments           organization_position_assignments[]
+  role_permissions      role_permissions[]
+}
+
+model organization_position_assignments {
+  id              Int           @id @default(autoincrement())
+  organization_id Int
+  position_id     Int
+  user_id         Int
+  assigned_by     Int?
+  position_title  String?       @db.VarChar
+  position_group  String?       @db.VarChar
+  notes           String?       @db.Text
+  is_active       Boolean       @default(true)
+  start_date      DateTime?     @db.Date
+  end_date        DateTime?     @db.Date
+  status          String        @default("active") @db.VarChar
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
+
+  organization    organizations @relation(fields: [organization_id], references: [id])
+  position        positions     @relation(fields: [position_id], references: [id])
+  user            users         @relation(fields: [user_id], references: [id])
+  assigner        users?        @relation("assigned_by", fields: [assigned_by], references: [id])
+}
+
+model permissions {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar
+  bn_name          String?            @db.VarChar
+  slug             String?            @db.VarChar
+  description      String?            @db.VarChar
+  resource         String?            @db.VarChar
+  action           String?            @db.VarChar
+  role_id          Int?
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  
+  role             roles?             @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  id            Int         @id @default(autoincrement())
+  position_id   Int
+  permission_id Int
+  
+  position      positions   @relation(fields: [position_id], references: [id])
+  permission    permissions @relation(fields: [permission_id], references: [id])
+}
+
+model roles {
+  id              Int           @id @default(autoincrement())
+  name            String        @db.VarChar
+  bn_name         String?       @db.VarChar
+  description     String?       @db.VarChar
+  organization_id Int
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
+  
+  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  permissions     permissions[]
+  users           users[]
+}
+
+model personal_report {
+  id                  Int       @id @default(autoincrement())
+  date                DateTime  @db.Date
+  quranStudy          Boolean   @default(false)
+  haditsRead          Int       @default(0)
+  literature          Int       @default(0)
+  targetContactDawah  Int       @default(0)
+  targetContactWorker Int       @default(0)
+  targetContactMember Int       @default(0)
+  workerContact       Int       @default(0)
+  bookDistribution    Int       @default(0)
+  familyMeeting       Boolean   @default(false)
+  socialWork          Boolean   @default(false)
+  orgWorkHours        Int       @default(0)
+  orgWorkMinutes      Int       @default(0)
+  safar               Boolean   @default(false)
+  reportKeeping       Boolean   @default(false)
+  selfCriticism       Boolean   @default(false)
+  createdAt           DateTime  @default(now()) @db.Timestamp(6)
+  userId              Int?
+  salahJamaat         Int       @default(0)
+  orgWorkStartedAt    DateTime? @db.Timestamp(6)
+  orgWorkSeconds      Int       @default(0)
+  
+  user                users?    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model plannings {
+  id               Int           @id @default(autoincrement())
+  organization_id  Int
+  year             Int
+  month            Int
+  dawatTarget      Int           @default(0)
+  dawatAchieved    Int           @default(0)
+  activistTarget   Int           @default(0)
+  activistAchieved Int           @default(0)
+  memberTarget     Int           @default(0)
+  memberAchieved   Int           @default(0)
+  programTarget    Int           @default(0)
+  programAchieved  Int           @default(0)
+  programDetails   String?
+  donationTarget   Decimal       @default(0) @db.Decimal(12, 2)
+  donationAchieved Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt        DateTime      @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime      @default(now()) @db.Timestamp(6)
+  
+  organization     organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, year, month])
+}
+
+model user_payments {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  year             Int
+  month            Int
+  allocated_nisab  Int      @default(0)
+  direct_ianat     Int      @default(0)
+  one_time         Int      @default(0)
+  election_fund    Int      @default(0)
+  shahid_fund      Int      @default(0)
+  flood_collection Int      @default(0)
+  social_work      Int      @default(0)
+  zakat            Int      @default(0)
+  fitra            Int      @default(0)
+  iftar            Int      @default(0)
+  delegate_fee     Int      @default(0)
+  total_paid       Int      @default(0)
+  createdAt        DateTime @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime @default(now()) @db.Timestamp(6)
+  
+  user             users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
+}
+
+model users {
+  id                        Int               @id @default(autoincrement())
+  name                      String?           @db.VarChar
+  bn_name                   String?           @db.VarChar
+  email                     String?           @unique @db.VarChar
+  phone                     String?           @unique @db.VarChar
+  password                  String?           @db.VarChar
+  status                    String            @default("active") @db.VarChar
+  isActive                  Boolean           @default(true)
+  googleId                  String?           @db.VarChar
+  role_id                   Int?              @map("roleId")
+  organization_id           Int?              @map("organizationId")
+  canCreateUsers            Boolean           @default(false)
+  created_by_user_id        Int?              @map("createdById")
+  created_at                DateTime          @default(now()) @db.Timestamp(6) @map("createdAt")
+  updated_at                DateTime          @default(now()) @db.Timestamp(6) @map("updatedAt")
+  
+  role                      roles?            @relation(fields: [role_id], references: [id])
+  organization              organizations?    @relation(fields: [organization_id], references: [id])
+  creator                   users?            @relation("UserToUser", fields: [created_by_user_id], references: [id])
+  created_users             users[]           @relation("UserToUser")
+  assignments               organization_position_assignments[]
+  assigned_positions        organization_position_assignments[] @relation("assigned_by")
+  
+  monthly_plan              monthly_plan[]
+  monthly_report            monthly_report[]
+  org_positions             org_positions[]
+  personal_report           personal_report[]
+  user_payments             user_payments[]
+
+  rank                      String?           @default("member") @db.VarChar
+  is_adv                    Boolean           @default(false)
+  bloodGroup                String?           @db.VarChar
+  fullname                  String?           @db.VarChar
+  monthly_baitulmal_amount  Int?
+  yearly_donation_amount    Int?
+  knowledgebase_id          Int?
+  academic_qualifications   Json?             @db.Json
+  address                   String?
+  nid                       String?           @db.VarChar
+  photo                     String?           @db.VarChar
+  is_monthly_baitulmal_paid Boolean           @default(false)
+  yearly_donation_paid      Int               @default(0)
+  office_address            String?
+  job_title                 String?           @db.VarChar
+  job_organization          String?           @db.VarChar
+}

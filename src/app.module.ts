@@ -15,6 +15,7 @@ import { PersonalReportModule } from './personal-report/personal-report.module';
 import { UsersModule } from './users/users.module';
 import { PlanningModule } from './planning/planning.module';
 import { ComprehensiveReportModule } from './comprehensive-report/comprehensive-report.module';
+import { OrgManagementModule } from './org-management/org-management.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ComprehensiveReportModule } from './comprehensive-report/comprehensive-
     DashboardModule,
     PlanningModule,
     ComprehensiveReportModule,
+    OrgManagementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

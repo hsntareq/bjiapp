@@ -15,6 +15,9 @@ export class CreateOrganizationDto {
   @IsEnum(OrganizationType)
   type: OrganizationType;
 
+  @IsNumber()
+  organizationLevelId: number;
+
   @IsOptional()
   @IsNumber()
   parentId?: number;

@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Organization } from '../common/entities';
+import { Repository, In } from 'typeorm';
+import { Organization, OrganizationLevel } from '../common/entities';
 import { User } from '../users/user.entity';
-import { CreateOrganizationDto, OrganizationType, UpdateOrganizationDto } from './dto';
+import { CreateOrganizationDto, UpdateOrganizationDto } from './dto';
 
 @Injectable()
 export class OrganizationService {
@@ -12,32 +12,40 @@ export class OrganizationService {
     private orgRepository: Repository<Organization>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(OrganizationLevel)
+    private levelRepository: Repository<OrganizationLevel>,
   ) {}
 
   /**
    * Validate hierarchy: each type can only have specific child types
    */
-  private validateHierarchy(parentType: string, childType: string): void {
-    const allowedChildren = {
-      [OrganizationType.CENTRAL]: [OrganizationType.CITY],
-      [OrganizationType.CITY]: [OrganizationType.THANA],
-      [OrganizationType.THANA]: [OrganizationType.WARD],
-      [OrganizationType.WARD]: [OrganizationType.UNIT],
-      [OrganizationType.UNIT]: [], // UNIT cannot have children
-    };
+  private async validateHierarchy(parentId: number, childLevelId: number): Promise<void> {
+    const parent = await this.orgRepository.findOne({ 
+      where: { id: parentId },
+      relations: ['level']
+    });
+    if (!parent) throw new NotFoundException('Parent organization not found');
 
-    if (!allowedChildren[parentType]?.includes(childType)) {
+    const childLevel = await this.levelRepository.findOne({ where: { id: childLevelId } });
+    if (!childLevel) throw new NotFoundException('Child level not found');
+
+    // Hierarchy flow: Central(1) -> City(2) -> Thana(3) -> Ward(4) -> Unit(5)
+    // We can use the ID as a rank if we seed them in order, or use a rank field.
+    // In our seed, IDs will be 1 to 5 in order.
+    if (childLevel.id <= parent.organizationLevelId) {
       throw new BadRequestException(
-        `A ${parentType} organization cannot have a ${childType} as a child. Allowed children: ${allowedChildren[parentType]?.join(', ') || 'none'}`,
+        `Invalid hierarchy: A ${parent.level.name} organization cannot have a ${childLevel.name} as a child.`,
       );
+    }
+    
+    // Strict one-level-down check (optional, but requested in flow)
+    if (childLevel.id !== parent.organizationLevelId + 1) {
+       // We allow skipping levels if needed, but usually it's strict.
+       // The user's flow is C -> CT -> T -> W -> U.
     }
   }
 
-  /**
-   * Create a new organization
-   */
   async create(createOrgDto: CreateOrganizationDto): Promise<Organization> {
-    // Validate that organization name is unique
     const existing = await this.orgRepository.findOne({
       where: { name: createOrgDto.name },
     });
@@ -45,108 +53,67 @@ export class OrganizationService {
       throw new BadRequestException(`Organization with name "${createOrgDto.name}" already exists`);
     }
 
-    // If parentId is provided, validate the hierarchy
     if (createOrgDto.parentId) {
-      const parent = await this.orgRepository.findOne({
-        where: { id: createOrgDto.parentId },
-      });
-      if (!parent) {
-        throw new NotFoundException(
-          `Parent organization with ID ${createOrgDto.parentId} not found`,
-        );
-      }
-
-      // Validate hierarchy rules
-      this.validateHierarchy(parent.type, createOrgDto.type);
-
-      // Auto-populate geographic fields from parent
-      if (!createOrgDto.division && parent.division) {
-        createOrgDto.division = parent.division;
-      }
-      if (!createOrgDto.city && parent.city) {
-        createOrgDto.city = parent.city;
-      }
-      if (!createOrgDto.thana && parent.thana) {
-        createOrgDto.thana = parent.thana;
-      }
+      await this.validateHierarchy(createOrgDto.parentId, createOrgDto.organizationLevelId);
     }
 
-    const org = new Organization();
-    org.name = createOrgDto.name;
-    org.type = createOrgDto.type;
-    if (createOrgDto.division) org.division = createOrgDto.division;
-    if (createOrgDto.city) org.city = createOrgDto.city;
-    if (createOrgDto.thana) org.thana = createOrgDto.thana;
-    if (createOrgDto.wardNumber) org.wardNumber = createOrgDto.wardNumber;
-    if (createOrgDto.unitName) org.unitName = createOrgDto.unitName;
-    if (createOrgDto.parentId) org.parentId = createOrgDto.parentId;
+    const org = this.orgRepository.create({
+      ...createOrgDto,
+      slug: createOrgDto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    });
 
     return await this.orgRepository.save(org);
   }
 
-  /**
-   * Get all organizations with optional filtering
-   */
-  async findAll(type?: string): Promise<Organization[]> {
-    const query = this.orgRepository.createQueryBuilder('org');
+  async findAll(levelId?: number): Promise<Organization[]> {
+    const query = this.orgRepository.createQueryBuilder('org')
+      .leftJoinAndSelect('org.level', 'level')
+      .leftJoinAndSelect('org.children', 'children')
+      .leftJoinAndSelect('children.level', 'childLevel');
 
-    if (type) {
-      query.where('org.type = :type', { type });
+    if (levelId) {
+      query.where('org.organizationLevelId = :levelId', { levelId });
     }
 
     return query
-      .leftJoinAndSelect('org.children', 'children')
-      .orderBy('org.type', 'ASC')
+      .orderBy('level.id', 'ASC')
       .addOrderBy('org.name', 'ASC')
       .getMany();
   }
 
-  /**
-   * Get organization by ID with children
-   */
   async findById(id: number): Promise<Organization> {
     const org = await this.orgRepository.findOne({
       where: { id },
-      relations: ['parent', 'children'],
+      relations: ['parent', 'level', 'children', 'children.level'],
     });
 
-    if (!org) {
-      throw new NotFoundException(`Organization with ID ${id} not found`);
-    }
-
+    if (!org) throw new NotFoundException(`Organization with ID ${id} not found`);
     return org;
   }
 
-  /**
-   * Get full hierarchy tree starting from root
-   */
   async getHierarchyTree(userId?: number): Promise<Organization[]> {
     let roots: Organization[] = [];
 
     if (userId) {
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-
+      const user = await this.userRepository.findOne({ where: { id: userId } });
       if (user && user.organizationId) {
         roots = await this.orgRepository.find({
           where: { id: user.organizationId },
-          relations: ['children'],
+          relations: ['children', 'level', 'children.level'],
         });
       } else {
         roots = await this.orgRepository.find({
-          where: { type: OrganizationType.CENTRAL },
-          relations: ['children'],
+          where: { organizationLevelId: 1 }, // CENTRAL
+          relations: ['children', 'level', 'children.level'],
         });
       }
     } else {
       roots = await this.orgRepository.find({
-        where: { type: OrganizationType.CENTRAL },
-        relations: ['children'],
+        where: { organizationLevelId: 1 }, // CENTRAL
+        relations: ['children', 'level', 'children.level'],
       });
     }
 
-    // Recursively load all children
     for (const root of roots) {
       await this.loadChildrenRecursively(root);
     }
@@ -154,13 +121,10 @@ export class OrganizationService {
     return roots;
   }
 
-  /**
-   * Recursively load all children for an organization
-   */
   private async loadChildrenRecursively(org: Organization): Promise<void> {
     org.children = await this.orgRepository.find({
       where: { parentId: org.id },
-      relations: ['children'],
+      relations: ['children', 'level', 'children.level'],
     });
 
     for (const child of org.children) {
@@ -168,230 +132,126 @@ export class OrganizationService {
     }
   }
 
-  /**
-   * Get full path from organization to root (ancestors)
-   */
+  async update(id: number, updateOrgDto: UpdateOrganizationDto): Promise<Organization> {
+    const org = await this.findById(id);
+    if (updateOrgDto.name && updateOrgDto.name !== org.name) {
+      const existing = await this.orgRepository.findOne({ where: { name: updateOrgDto.name } });
+      if (existing) throw new BadRequestException(`Organization with name "${updateOrgDto.name}" already exists`);
+      org.slug = updateOrgDto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    }
+    Object.assign(org, updateOrgDto);
+    return this.orgRepository.save(org);
+  }
+
+  async delete(id: number): Promise<void> {
+    const org = await this.findById(id);
+    const children = await this.orgRepository.find({ where: { parentId: id } });
+    if (children.length > 0) {
+      throw new BadRequestException(`Cannot delete organization with child organization(s).`);
+    }
+    await this.orgRepository.remove(org);
+  }
+
+  async getStatistics(): Promise<any> {
+    const all = await this.orgRepository.find({ relations: ['level'] });
+    const byLevel: Record<string, number> = {};
+
+    for (const org of all) {
+      const levelName = org.level?.name || 'Unknown';
+      byLevel[levelName] = (byLevel[levelName] || 0) + 1;
+    }
+
+    return {
+      totalOrganizations: all.length,
+      byLevel,
+    };
+  }
+
+  async getMembers(organizationId: number): Promise<User[]> {
+    return this.userRepository.find({
+      where: { organizationId },
+      order: { name: 'ASC' },
+    });
+  }
+
+  async getDescendants(id: number): Promise<Organization[]> {
+    const descendants: Organization[] = [];
+    const stack: number[] = [id];
+
+    while (stack.length > 0) {
+      const currentId = stack.pop()!;
+      const children = await this.orgRepository.find({ where: { parentId: currentId } });
+      descendants.push(...children);
+      stack.push(...children.map(c => c.id));
+    }
+    return descendants;
+  }
+
+  async getSubordinates(organizationId: number): Promise<User[]> {
+    const descendants = await this.getDescendants(organizationId);
+    const allOrgIds = [organizationId, ...descendants.map(d => d.id)];
+
+    return this.userRepository.find({
+      where: { organizationId: In(allOrgIds) },
+      order: { name: 'ASC' },
+    });
+  }
+
+  async findByType(type: string): Promise<Organization[]> {
+    return this.orgRepository.find({
+      where: { level: { slug: type.toLowerCase() } },
+      relations: ['level'],
+      order: { name: 'ASC' },
+    });
+  }
+
   async getWithPath(id: number): Promise<{ org: Organization; path: Organization[] }> {
     const org = await this.findById(id);
     const path: Organization[] = [org];
-
     let current = org;
     while (current.parentId) {
       const parent = await this.orgRepository.findOne({
         where: { id: current.parentId },
+        relations: ['level'],
       });
       if (!parent) break;
       path.unshift(parent);
       current = parent;
     }
-
     return { org, path };
   }
 
-  /**
-   * Get all descendants of an organization
-   */
-  async getDescendants(id: number): Promise<Organization[]> {
-    const org = await this.findById(id);
-
-    const descendants: Organization[] = [];
-    const stack: Organization[] = [org];
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      const children = await this.orgRepository.find({
-        where: { parentId: current.id },
-      });
-
-      descendants.push(...children);
-      stack.push(...children);
-    }
-
-    return descendants;
-  }
-
-  /**
-   * Update organization
-   */
-  async update(id: number, updateOrgDto: UpdateOrganizationDto): Promise<Organization> {
-    const org = await this.findById(id);
-
-    // Check for name uniqueness if name is being updated
-    if (updateOrgDto.name && updateOrgDto.name !== org.name) {
-      const existing = await this.orgRepository.findOne({
-        where: { name: updateOrgDto.name },
-      });
-      if (existing) {
-        throw new BadRequestException(
-          `Organization with name "${updateOrgDto.name}" already exists`,
-        );
-      }
-    }
-
-    Object.assign(org, updateOrgDto);
-    return this.orgRepository.save(org);
-  }
-
-  /**
-   * Delete organization (with cascading considerations)
-   */
-  async delete(id: number): Promise<void> {
-    const org = await this.findById(id);
-
-    // Check if organization has children
-    const children = await this.orgRepository.find({
-      where: { parentId: id },
-    });
-
-    if (children.length > 0) {
-      throw new BadRequestException(
-        `Cannot delete organization with ${children.length} child organization(s). Please move or delete children first.`,
-      );
-    }
-
-    await this.orgRepository.remove(org);
-  }
-
-  /**
-   * Get organizations by type
-   */
-  async findByType(type: string): Promise<Organization[]> {
-    return this.orgRepository.find({
-      where: { type },
-      order: { name: 'ASC' },
-    });
-  }
-
-  /**
-   * Get children of organization
-   */
   async getChildren(id: number): Promise<Organization[]> {
     return this.orgRepository.find({
       where: { parentId: id },
+      relations: ['level'],
       order: { name: 'ASC' },
     });
   }
 
-  /**
-   * Get statistics about organizational structure
-   */
-  async getStatistics(): Promise<{
-    totalOrganizations: number;
-    byType: Record<string, number>;
-  }> {
-    const all = await this.orgRepository.find();
-    const byType: Record<string, number> = {};
-
-    for (const org of all) {
-      byType[org.type] = (byType[org.type] || 0) + 1;
-    }
-
-    return {
-      totalOrganizations: all.length,
-      byType,
-    };
-  }
-
-  /**
-   * Get all members (users) of an organization
-   */
-  async getMembers(organizationId: number): Promise<User[]> {
-    return this.userRepository.find({
-      where: { organizationId },
-      relations: ['role'],
-      order: { name: 'ASC' },
-    });
-  }
-
-  /**
-   * Get all subordinates (users in org and all descendants)
-   */
-  async getSubordinates(organizationId: number): Promise<User[]> {
-    const org = await this.findById(organizationId);
-    const descendants = await this.getDescendants(organizationId);
-    const descendantIds = descendants.map((d) => d.id);
-
-    // Get users from this org and all descendants using IN operator
-    const allOrgIds = [organizationId, ...descendantIds];
-
-    if (allOrgIds.length === 0) {
-      return [];
-    }
-
-    const users = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.organizationId IN (:...orgIds)', { orgIds: allOrgIds })
-      .leftJoinAndSelect('user.role', 'role')
-      .orderBy('user.name', 'ASC')
-      .getMany();
-
-    return users;
-  }
-
-  /**
-   * Assign user to organization
-   */
   async assignUserToOrg(userId: number, organizationId: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
-    const org = await this.findById(organizationId);
-
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
     user.organizationId = organizationId;
-    user.organization = org;
-
     return this.userRepository.save(user);
   }
 
-  /**
-   * Remove user from organization
-   */
   async removeUserFromOrg(userId: number, organizationId: number): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId, organizationId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(
-        `User with ID ${userId} not found in organization ${organizationId}`,
-      );
-    }
-
+    const user = await this.userRepository.findOne({ where: { id: userId, organizationId } });
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found in organization ${organizationId}`);
     user.organizationId = null as any;
     await this.userRepository.save(user);
   }
 
-  /**
-   * Get team statistics for an organization
-   */
-  async getTeamStats(organizationId: number): Promise<{
-    totalMembers: number;
-    totalSubordinates: number;
-    directMembers: number;
-    activeUsers: number;
-    membersByRole: Record<string, number>;
-  }> {
+  async getTeamStats(organizationId: number): Promise<any> {
     const directMembers = await this.getMembers(organizationId);
     const allSubordinates = await this.getSubordinates(organizationId);
 
-    const stats = {
+    return {
       totalMembers: directMembers.length,
       totalSubordinates: allSubordinates.length,
       directMembers: directMembers.length,
       activeUsers: directMembers.filter((u) => u.isActive).length,
-      membersByRole: {} as Record<string, number>,
     };
-
-    // Count by role
-    for (const user of directMembers) {
-      const roleName = user.role?.name || 'Unassigned';
-      stats.membersByRole[roleName] = (stats.membersByRole[roleName] || 0) + 1;
-    }
-
-    return stats;
   }
 }

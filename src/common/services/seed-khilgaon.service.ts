@@ -75,27 +75,26 @@ export class SeedKhilgaonService {
     return this.userRepo.save(user);
   }
 
-  private async createPosition(org: Organization, user: User, positionTitle: string, group: string): Promise<void> {
-    // Already linked to this user — nothing to do
-    const existingForUser = await this.positionRepo.findOne({
-      where: { organizationId: org.id, userId: user.id } as any,
+  private async createPosition(org: Organization, user: User | null, positionTitle: string, group: string): Promise<void> {
+    // Check if THIS position title already exists for this organization
+    const existingSlot = await this.positionRepo.findOne({
+      where: { organizationId: org.id, positionTitle } as any,
     });
-    if (existingForUser) return;
-
-    // Reuse a vacant slot with the same title rather than creating a duplicate
-    const vacantSlot = await this.positionRepo.findOne({
-      where: { organizationId: org.id, positionTitle, userId: null } as any,
-    });
-    if (vacantSlot) {
-      (vacantSlot as any).userId = user.id;
-      (vacantSlot as any).isActive = true;
-      await this.positionRepo.save(vacantSlot as any);
+    
+    // If it exists, we don't create another one (prevents duplicates on re-seed)
+    if (existingSlot) {
+      // If we wanted to enforce "No responsible person selected initially", 
+      // we ensure userId is null here if it's not a CITY organization.
+      if (org.type !== 'CITY') {
+        (existingSlot as any).userId = null;
+        await this.positionRepo.save(existingSlot as any);
+      }
       return;
     }
 
     const pos = this.positionRepo.create({
       organizationId: org.id,
-      userId: user.id,
+      userId: (org.type === 'CITY' && user) ? user.id : null,
       positionTitle,
       positionGroup: group,
       isActive: true,
@@ -169,7 +168,8 @@ export class SeedKhilgaonService {
       const email = `thana-khilgaon-${p.slug}@bjioms.com`;
       const name = this.titleToName(p.title, 'Khilgaon');
       const user = await this.createUser({ email, name, org: thanaOrg, role: thanaRole, rank: p.rank, canCreateUsers: p.canCreate });
-      await this.createPosition(thanaOrg, user, p.title, 'EXECUTIVE');
+      // Create vacant position slot only
+      await this.createPosition(thanaOrg, null, p.title, 'EXECUTIVE');
       console.log(`    ✓ ${p.title}: ${email}`);
     }
 
@@ -273,7 +273,8 @@ export class SeedKhilgaonService {
       const email = `ward-${wardSlug}-${p.slug}@bjioms.com`;
       const name = this.titleToName(p.title, wardName);
       const user = await this.createUser({ email, name, org: wardOrg, role: wardRole, rank: p.rank, canCreateUsers: p.canCreate });
-      await this.createPosition(wardOrg, user, p.title, 'EXECUTIVE');
+      // Create vacant position slot only
+      await this.createPosition(wardOrg, null, p.title, 'EXECUTIVE');
       console.log(`    ✓ ${p.title}: ${email}`);
     }
 
@@ -302,7 +303,7 @@ export class SeedKhilgaonService {
         name: `${unitDef.name} President`,
         org: unitOrg, role: unitRole, rank: 'member', canCreateUsers: false,
       });
-      await this.createPosition(unitOrg, president, 'President', 'EXECUTIVE');
+      await this.createPosition(unitOrg, null, 'President', 'EXECUTIVE');
 
       // Secretary → rank: activist
       const secretaryEmail = `unit-${unitDef.slug}-secretary@bjioms.com`;
@@ -311,7 +312,7 @@ export class SeedKhilgaonService {
         name: `${unitDef.name} Secretary`,
         org: unitOrg, role: unitRole, rank: 'activist', canCreateUsers: false,
       });
-      await this.createPosition(unitOrg, secretary, 'Secretary', 'EXECUTIVE');
+      await this.createPosition(unitOrg, null, 'Secretary', 'EXECUTIVE');
 
       // Additional activists: 1-2 (total unit max ~10)
       const numActivists = randInt(1, 2);

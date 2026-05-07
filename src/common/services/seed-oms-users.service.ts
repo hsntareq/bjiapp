@@ -82,7 +82,7 @@ export class SeedOmsUsersService {
       isAdv: params.isAdv ?? false,
       isActive: true,
       // Adding/Updating dummy info
-      mobile: u.mobile || "01" + Math.floor(Math.random() * 900000000 + 100000000).toString(),
+      phone: u.phone || "01" + Math.floor(Math.random() * 900000000 + 100000000).toString(),
       monthlyBaitulmalAmount: u.monthlyBaitulmalAmount || Math.floor(Math.random() * 500) + 100,
       yearlyDonationAmount: u.yearlyDonationAmount || Math.floor(Math.random() * 5000) + 1000,
       knowledgebaseId: u.knowledgebaseId || Math.floor(Math.random() * 100) + 1,

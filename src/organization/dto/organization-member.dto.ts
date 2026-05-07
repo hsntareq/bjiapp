@@ -16,7 +16,7 @@ export class OrgMemberResponseDto {
   id: number;
   name: string;
   email: string;
-  mobile: string;
+  phone: string;
   roleId: number;
   roleName: string;
   organizationId: number;

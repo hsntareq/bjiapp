@@ -21,8 +21,8 @@ export class UsersService {
     return user === null ? undefined : user;
   }
 
-  async findByMobile(mobile: string): Promise<User | undefined> {
-    const user = await this.usersRepository.findOne({ where: { mobile } });
+  async findByPhone(phone: string): Promise<User | undefined> {
+    const user = await this.usersRepository.findOne({ where: { phone } });
     return user === null ? undefined : user;
   }
 
@@ -120,14 +120,14 @@ export class UsersService {
     // Get users for current org
     const currentOrgUsers = await this.usersRepository.find({
       where: { organizationId: orgId },
-      relations: ['role', 'organization', 'positions', 'positions.organization', 'payments'],
+      relations: ['role', 'organization', 'assignments', 'assignments.organization', 'assignments.position', 'payments'],
     });
 
     // Get users for child orgs
     const childOrgUsers = childOrgIds.length > 0
       ? await this.usersRepository.find({
           where: { organizationId: In(childOrgIds) },
-          relations: ['role', 'organization', 'positions', 'positions.organization', 'payments'],
+          relations: ['role', 'organization', 'assignments', 'assignments.organization', 'assignments.position', 'payments'],
         })
       : [];
 
@@ -140,6 +140,13 @@ export class UsersService {
       organization: user.organization?.name || 'Unknown',
       rank: (user as any).rank || null,
       isAdv: (user as any).isAdv ?? false,
+      positions: user.assignments?.map(p => ({
+        organizationId: p.organizationId,
+        organizationName: p.organization?.name,
+        positionTitle: p.position?.name,
+        positionGroup: p.position?.isExecutive ? 'EXECUTIVE' : 'MEMBER',
+        isActive: p.status === 'active',
+      })) || [],
       ...(childOrgName && { childOrgName }),
     });
 

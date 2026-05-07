@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Organization, Role, OrgPosition } from '../common/entities';
+import { Organization, Role, OrganizationPositionAssignment } from '../common/entities';
 import { PersonalReport } from '../personal-report/personal-report.entity';
 import { UserPayment } from './user-payment.entity';
 
@@ -11,8 +11,8 @@ export class User {
   @Column({ unique: true, nullable: true })
   email: string;
 
-  @Column({ unique: true, nullable: true })
-  mobile: string;
+  @Column({ unique: true, nullable: true, name: 'phone' })
+  phone: string;
 
   @Column({ nullable: true })
   password: string;
@@ -23,8 +23,14 @@ export class User {
   @Column({ nullable: true })
   name: string;
 
+  @Column({ name: 'bn_name', nullable: true })
+  bnName: string;
+
   @Column({ name: 'fullname', nullable: true })
   fullname: string;
+
+  @Column({ default: 'active' })
+  status: string; // active, inactive, etc.
 
   @Column({ default: true })
   isActive: boolean;
@@ -112,8 +118,8 @@ export class User {
   @OneToMany(() => PersonalReport, (report) => report.user)
   personalReports: PersonalReport[];
 
-  @OneToMany(() => OrgPosition, (pos) => pos.user)
-  positions: OrgPosition[];
+  @OneToMany(() => OrganizationPositionAssignment, (opa) => opa.user)
+  assignments: OrganizationPositionAssignment[];
 
   @OneToMany(() => UserPayment, (payment) => payment.user)
   payments: UserPayment[];

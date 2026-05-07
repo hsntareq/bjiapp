@@ -436,9 +436,9 @@ export class SeedDataService {
     // Create Central User
     const centralUser = this.userRepo.create({
       email: 'central@bjioms.com',
-      password: await this.hashPassword('admin@bjioms.com'),
+      password: await this.hashPassword('central@bjioms.com'),
       name: 'Central Administrator',
-      mobile: '+880170000001',
+      phone: '+880170000001',
       organization: centralOrg,
       role: centralAdminRole,
       canCreateUsers: true,

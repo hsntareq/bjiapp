@@ -3,6 +3,7 @@ import { AppService } from './app.service';
 import { SeedKhilgaonService } from './common/services/seed-khilgaon.service';
 import { SeedDataService } from './common/services/seed-data.service';
 import { SeedOmsUsersService } from './common/services/seed-oms-users.service';
+import { HierarchicalSeedService } from './common/services/hierarchical-seed.service';
 
 @Controller()
 export class AppController {
@@ -11,6 +12,7 @@ export class AppController {
     private readonly seedDataService: SeedDataService,
     private readonly seedKhilgaonService: SeedKhilgaonService,
     private readonly seedOmsUsersService: SeedOmsUsersService,
+    private readonly hierarchicalSeedService: HierarchicalSeedService,
   ) {}
 
   @Get()
@@ -23,6 +25,16 @@ export class AppController {
     try {
       await this.seedDataService.seed();
       return { success: true, message: 'Database seeded successfully' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('seed-hierarchy')
+  async seedHierarchy() {
+    try {
+      await this.hierarchicalSeedService.seed();
+      return { success: true, message: 'Hierarchical organization seeded successfully' };
     } catch (error) {
       return { success: false, error: error.message };
     }

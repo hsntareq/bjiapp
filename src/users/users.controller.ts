@@ -9,8 +9,9 @@ export class UsersController {
   @Get()
   async findAll(@Query('search') search?: string) {
     const qb = this.usersService.findAllQueryBuilder(search);
-    const users = await qb.leftJoinAndSelect('user.positions', 'positions')
-      .leftJoinAndSelect('positions.organization', 'posOrg')
+    const users = await qb.leftJoinAndSelect('user.assignments', 'assignments')
+      .leftJoinAndSelect('assignments.organization', 'posOrg')
+      .leftJoinAndSelect('assignments.position', 'position')
       .leftJoinAndSelect('user.payments', 'payments')
       .getMany();
     
@@ -18,7 +19,7 @@ export class UsersController {
       id: user.id,
       fullname: user.fullname || user.name,
       email: user.email,
-      mobile: user.mobile || null,
+      phone: user.phone || null,
       bloodGroup: (user as any).bloodGroup || null,
       responsibility: user.role ? user.role.name : null,
       organization: (user as any).organization?.name || null,
@@ -47,12 +48,12 @@ export class UsersController {
         institution: q.institution,
         year: q.year,
       })) || [],
-      positions: user.positions?.map(p => ({
+      positions: user.assignments?.map(p => ({
         organizationId: p.organizationId,
         organizationName: p.organization?.name,
-        positionTitle: p.positionTitle,
-        positionGroup: p.positionGroup,
-        isActive: p.isActive,
+        positionTitle: p.position?.name,
+        positionGroup: p.position?.isExecutive ? 'EXECUTIVE' : 'MEMBER',
+        isActive: p.status === 'active',
       })) || [],
       payments: user.payments?.sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month)) || [],
     }));

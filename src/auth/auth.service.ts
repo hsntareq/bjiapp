@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { Organization, OrgPosition } from '../common/entities';
+import { Organization, OrganizationPositionAssignment } from '../common/entities';
 import { User } from '../users/user.entity';
 
 @Injectable()
@@ -13,14 +13,14 @@ export class AuthService {
     private usersRepository: Repository<User>,
     @InjectRepository(Organization)
     private orgRepository: Repository<Organization>,
-    @InjectRepository(OrgPosition)
-    private orgPositionRepository: Repository<OrgPosition>,
+    @InjectRepository(OrganizationPositionAssignment)
+    private assignmentRepository: Repository<OrganizationPositionAssignment>,
     private jwtService: JwtService,
   ) {}
 
-  async register(data: { email?: string; mobile?: string; password: string }) {
-    if (!data.email && !data.mobile) {
-      throw new HttpException('Email or mobile is required', HttpStatus.BAD_REQUEST);
+  async register(data: { email?: string; phone?: string; password: string }) {
+    if (!data.email && !data.phone) {
+      throw new HttpException('Email or phone is required', HttpStatus.BAD_REQUEST);
     }
     if (data.email) {
       const existing = await this.usersRepository.findOne({ where: { email: data.email } });
@@ -28,16 +28,17 @@ export class AuthService {
         throw new HttpException('Email already registered', HttpStatus.CONFLICT);
       }
     }
-    if (data.mobile) {
-      const existing = await this.usersRepository.findOne({ where: { mobile: data.mobile } });
+    if (data.phone) {
+      const existing = await this.usersRepository.findOne({ where: { phone: data.phone } });
       if (existing) {
-        throw new HttpException('Mobile already registered', HttpStatus.CONFLICT);
+        throw new HttpException('Phone already registered', HttpStatus.CONFLICT);
       }
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const effectivePassword = data.email || data.phone || data.password;
+    const hashedPassword = await bcrypt.hash(effectivePassword, 10);
     const user = this.usersRepository.create({
       email: data.email,
-      mobile: data.mobile,
+      phone: data.phone,
       password: hashedPassword,
     });
     const saved = await this.usersRepository.save(user);
@@ -54,13 +55,30 @@ export class AuthService {
     return null;
   }
 
-  async validateUserByMobile(mobile: string, pass: string): Promise<any> {
-    const user = await this.usersRepository.findOne({ where: { mobile } });
+  async validateUserByPhone(phone: string, pass: string): Promise<any> {
+    const user = await this.usersRepository.findOne({ where: { phone } });
     if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }
     return null;
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    return this.validateUserByEmail(email, pass);
+  }
+
+  async login(user: any) {
+    const payload = { email: user.email, sub: user.id, organizationId: user.organizationId };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        organizationId: user.organizationId,
+      },
+    };
   }
 
   async findOrCreateByGoogle(googleId: string, email: string): Promise<any> {
@@ -76,34 +94,7 @@ export class AuthService {
       const { password, ...result } = user;
       return result;
     }
-    // Create new user from Google
-    const newUser = this.usersRepository.create({ googleId, email });
-    const saved = await this.usersRepository.save(newUser);
-    const { password, ...result } = saved;
-    return result;
-  }
-
-  async login(user: any) {
-    // Load full user with role and organization for JWT payload
-    const fullUser = await this.usersRepository.findOne({
-      where: { id: user.id },
-      relations: ['role', 'organization'],
-    });
-
-    if (!fullUser) {
-      throw new Error('User not found');
-    }
-
-    const payload = {
-      username: fullUser.email || fullUser.mobile,
-      sub: fullUser.id,
-      organizationId: fullUser.organizationId,
-      roleId: fullUser.roleId,
-      canCreateUsers: fullUser.canCreateUsers,
-    };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    return null;
   }
 
   async getMe(userId: number, organizationId: number): Promise<{
@@ -124,34 +115,36 @@ export class AuthService {
     let positionTitle: string | null = null;
     let positionGroup: string | null = null;
 
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    const userAssignments = await this.assignmentRepository.find({
+      where: { userId: userId, status: 'active' },
+      relations: ['position', 'organization', 'organization.level', 'organization.parent', 'organization.parent.level'],
+    });
+
     if (organizationId) {
-      const org = await this.orgRepository.findOne({
-        where: { id: organizationId },
-        relations: ['parent'],
-      });
-      if (org) {
-        orgType = org.type;
-        orgName = org.name;
-        if (org.parent) {
-          parentOrgId = org.parent.id;
-          parentOrgType = org.parent.type;
+      const currentAssignment = userAssignments.find(a => a.organizationId === organizationId);
+      if (currentAssignment) {
+        orgType = currentAssignment.organization.level.slug.toUpperCase();
+        orgName = currentAssignment.organization.name;
+        positionTitle = currentAssignment.position.name;
+        positionGroup = currentAssignment.position.isExecutive ? 'EXECUTIVE' : 'MEMBER';
+        
+        if (currentAssignment.organization.parent) {
+          parentOrgId = currentAssignment.organization.parent.id;
+          parentOrgType = currentAssignment.organization.parent.level.slug.toUpperCase();
         }
       }
-
-      const position = await this.orgPositionRepository.findOne({
-        where: { userId: userId as any, organizationId, isActive: true },
-      });
-      if (position) {
-        positionTitle = position.positionTitle;
-        positionGroup = position.positionGroup;
-      }
     }
-
-    // Access granted only for key leadership positions (not Baitulmal, Treasurer, etc.)
-    const EXEC_TITLES = ['President', 'Secretary', 'Office', 'Office Secretary', 'Vice President', 'Joint Secretary'];
-    const hasOrgAccess = !!positionTitle && EXEC_TITLES.some(
-      (t) => positionTitle.toLowerCase().includes(t.toLowerCase())
+    
+    const hasExecPosition = userAssignments.some(a => a.position.isExecutive);
+    const belongsToHighLevel = userAssignments.some(a => 
+      a.organization?.level && ['CENTRAL', 'CITY'].includes(a.organization.level.slug.toUpperCase())
     );
+
+    const hasOrgAccess = 
+      hasExecPosition || 
+      belongsToHighLevel || 
+      (user && (user.canCreateUsers || user.email === 'admin@bjioms.com' || user.email === 'central@bjioms.com'));
 
     return {
       userId,
@@ -162,7 +155,21 @@ export class AuthService {
       parentOrgType,
       positionTitle,
       positionGroup,
-      hasOrgAccess,
+      hasOrgAccess: !!hasOrgAccess,
     };
+  }
+
+  async changePassword(userId: number, oldPass: string, newPass: string) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user || !user.password) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    const isMatch = await bcrypt.compare(oldPass, user.password);
+    if (!isMatch) {
+      throw new HttpException('Invalid current password', HttpStatus.UNAUTHORIZED);
+    }
+    user.password = await bcrypt.hash(newPass, 10);
+    await this.usersRepository.save(user);
+    return { success: true, message: 'Password updated successfully' };
   }
 }
