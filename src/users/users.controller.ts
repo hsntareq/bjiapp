@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Req, Param, Delete, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 
@@ -87,5 +87,31 @@ export class UsersController {
       userId,
       userOrgId,
     );
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const requesterUserId = (req as any).user?.userId || (req as any).user?.sub;
+    const requester = await this.usersService.findById(parseInt(requesterUserId));
+    
+    if (!requester?.canCreateUsers && requester?.email !== 'admin@bjioms.com' && requester?.email !== 'central@bjioms.com') {
+      throw new BadRequestException('Unauthorized. Only admins can remove users.');
+    }
+
+    return this.usersService.remove(parseInt(id));
+  }
+
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  async create(@Body() body: any, @Req() req: Request) {
+    const requesterUserId = (req as any).user?.userId || (req as any).user?.sub;
+    const requester = await this.usersService.findById(parseInt(requesterUserId));
+    
+    if (!requester?.canCreateUsers && requester?.email !== 'admin@bjioms.com' && requester?.email !== 'central@bjioms.com') {
+      throw new BadRequestException('Unauthorized. Only admins can create users.');
+    }
+
+    return this.usersService.createUser(body);
   }
 }

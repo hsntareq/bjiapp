@@ -79,6 +79,16 @@ export class AuthController {
     @Body() body: { oldPassword: string; newPassword: string },
   ) {
     const user = (req as any).user;
-    return this.authService.changePassword(user.sub, body.oldPassword, body.newPassword);
+    return this.authService.changePassword(user.userId || user.sub, body.oldPassword, body.newPassword);
+  }
+
+  @Post('admin-reset-password')
+  @UseGuards(AuthGuard('jwt'))
+  async adminResetPassword(
+    @Req() req: Request,
+    @Body() body: { userId: number; newPassword: string },
+  ) {
+    const admin = (req as any).user;
+    return this.authService.adminResetPassword(admin.userId || admin.sub, body.userId, body.newPassword);
   }
 }

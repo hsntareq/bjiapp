@@ -113,8 +113,21 @@ export class OrgManagementService {
     slug?: string;
     code?: string;
     parentId?: number;
-    organizationLevelId: number;
+    organizationLevelId?: number;
+    type?: string;
   }) {
+    // Resolve organizationLevelId from type string if provided
+    if (data.type && !data.organizationLevelId) {
+      const level = await this.levelRepo.findOne({ where: { slug: data.type.toLowerCase() } });
+      if (level) {
+        data.organizationLevelId = level.id;
+      }
+    }
+
+    if (!data.organizationLevelId) {
+      throw new BadRequestException('Organization level is required');
+    }
+
     // Validate hierarchy
     if (data.parentId) {
       const parent = await this.orgRepo.findOne({ 

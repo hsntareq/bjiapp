@@ -124,21 +124,23 @@ export class AuthService {
     if (organizationId) {
       const currentAssignment = userAssignments.find(a => a.organizationId === organizationId);
       if (currentAssignment) {
-        orgType = currentAssignment.organization.level.slug.toUpperCase();
-        orgName = currentAssignment.organization.name;
-        positionTitle = currentAssignment.position.name;
-        positionGroup = currentAssignment.position.isExecutive ? 'EXECUTIVE' : 'MEMBER';
+        orgType = currentAssignment.organization?.level?.slug?.toUpperCase() || null;
+        orgName = currentAssignment.organization?.name || null;
+        positionTitle = currentAssignment.position?.name || currentAssignment.positionTitle;
+        positionGroup = currentAssignment.position?.isExecutive ? 'EXECUTIVE' : (currentAssignment.positionGroup || 'MEMBER');
         
-        if (currentAssignment.organization.parent) {
+        if (currentAssignment.organization?.parent) {
           parentOrgId = currentAssignment.organization.parent.id;
-          parentOrgType = currentAssignment.organization.parent.level.slug.toUpperCase();
+          parentOrgType = currentAssignment.organization.parent.level?.slug?.toUpperCase() || null;
         }
       }
     }
     
-    const hasExecPosition = userAssignments.some(a => a.position.isExecutive);
+    const hasExecPosition = userAssignments.some(a => 
+      a.position?.isExecutive || a.positionGroup === 'EXECUTIVE'
+    );
     const belongsToHighLevel = userAssignments.some(a => 
-      a.organization?.level && ['CENTRAL', 'CITY'].includes(a.organization.level.slug.toUpperCase())
+      a.organization?.level?.slug && ['CENTRAL', 'CITY'].includes(a.organization.level.slug.toUpperCase())
     );
 
     const hasOrgAccess = 
@@ -171,5 +173,21 @@ export class AuthService {
     user.password = await bcrypt.hash(newPass, 10);
     await this.usersRepository.save(user);
     return { success: true, message: 'Password updated successfully' };
+  }
+
+  async adminResetPassword(adminUserId: number, targetUserId: number, newPass: string) {
+    const admin = await this.usersRepository.findOne({ where: { id: adminUserId } });
+    if (!admin || !admin.canCreateUsers) {
+      throw new HttpException('Unauthorized. Only admins can reset passwords.', HttpStatus.FORBIDDEN);
+    }
+
+    const targetUser = await this.usersRepository.findOne({ where: { id: targetUserId } });
+    if (!targetUser) {
+      throw new HttpException('Target user not found', HttpStatus.NOT_FOUND);
+    }
+
+    targetUser.password = await bcrypt.hash(newPass, 10);
+    await this.usersRepository.save(targetUser);
+    return { success: true, message: `Password for user ${targetUser.email || targetUser.phone} has been reset.` };
   }
 }

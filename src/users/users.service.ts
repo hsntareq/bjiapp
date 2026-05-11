@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Organization } from '../common/entities';
@@ -161,5 +162,39 @@ export class UsersService {
       where: { userId },
       order: { year: 'DESC', month: 'DESC' },
     });
+  }
+
+  async remove(userId: number) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+    return this.usersRepository.remove(user);
+  }
+
+  async createUser(data: Partial<User> & { password?: string }): Promise<User> {
+    if (!data.email && !data.phone) {
+      throw new BadRequestException('Email or phone is required');
+    }
+    
+    // Check for existing
+    if (data.email) {
+      const existing = await this.usersRepository.findOne({ where: { email: data.email } });
+      if (existing) throw new BadRequestException('Email already exists');
+    }
+    if (data.phone) {
+      const existing = await this.usersRepository.findOne({ where: { phone: data.phone } });
+      if (existing) throw new BadRequestException('Phone already exists');
+    }
+
+    const effectivePassword = data.password || data.email || data.phone || 'password';
+    const hashedPassword = await bcrypt.hash(effectivePassword, 10);
+
+    const newUser = this.usersRepository.create({
+      ...data,
+      password: hashedPassword,
+      status: data.status || 'active',
+      isActive: data.isActive ?? true,
+    });
+
+    return this.usersRepository.save(newUser);
   }
 }

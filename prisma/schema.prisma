@@ -148,6 +148,7 @@ model organizations {
   thana                 String?                 @db.VarChar
   wardNumber            Int?
   unitName              String?                 @db.VarChar
+  office                String?                 @db.VarChar
 
   parent                organizations?          @relation("org_hierarchy", fields: [parent_id], references: [id])
   children              organizations[]         @relation("org_hierarchy")

@@ -41,4 +41,8 @@ export class CreateOrganizationDto {
   @IsOptional()
   @IsString()
   unitName?: string;
+
+  @IsOptional()
+  @IsString()
+  office?: string;
 }

@@ -24,4 +24,8 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsString()
   unitName?: string;
+
+  @IsOptional()
+  @IsString()
+  office?: string;
 }

@@ -64,6 +64,9 @@ export class Organization {
   @Column({ nullable: true })
   unitName: string;
 
+  @Column({ nullable: true })
+  office: string;
+
   @Column()
   name: string;
 
